@@ -1,15 +1,19 @@
 {
   "expo": {
-    "name": "wyd",
+    "name": "watchu doin?",
     "slug": "wyd",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "watchudoin",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.watchudoin.app"
     },
     "android": {
+      "package": "com.watchudoin.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,6 +24,43 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#FCFAF8"
+        }
+      ],
+      "expo-router",
+      "expo-font",
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#6C56C7",
+          "defaultChannel": "watchu-doin"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow watchu doin? to take moment photos.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow watchu doin? to choose a moment photo.",
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }
