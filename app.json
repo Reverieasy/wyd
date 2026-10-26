@@ -2,7 +2,7 @@
   "expo": {
     "name": "watchudoin?",
     "slug": "wyd",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "scheme": "watchudoin",
     "icon": "./assets/app-icon-safe.png",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.watchudoin.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/app-icon-safe.png"

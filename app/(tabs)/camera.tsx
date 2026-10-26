@@ -77,7 +77,6 @@ export default function CameraRoute() {
         height: photo.height,
         mimeType: 'image/jpeg',
       });
-      actions.setDraftQuiet(state.local.preferences.quietUpdatesEnabled);
       router.push('/(flows)/preview');
     } catch {
       setError('The camera could not take that photo. Please try again.');
@@ -112,7 +111,6 @@ export default function CameraRoute() {
         height: asset.height,
         mimeType: asset.mimeType ?? null,
       });
-      actions.setDraftQuiet(state.local.preferences.quietUpdatesEnabled);
       router.push('/(flows)/preview');
     } catch {
       setError('The photo library could not be opened. Please try again.');

@@ -42,7 +42,6 @@ export type UpdateDraft = {
   recipientIds: UserId[];
   circleIds: string[];
   caption: string;
-  isQuiet: boolean;
   sending: boolean;
   sendStage: 'idle' | 'preparing' | 'uploading' | 'creating';
   clientRequestId: string | null;

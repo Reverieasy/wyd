@@ -2,6 +2,8 @@
 
 The app uses Expo Push Service with Firebase Cloud Messaging (FCM V1) for Android. Supabase queues moments, nudges, reactions, comments, and connection events. The worker checks recipients, blocks, access, preferences, and delivery deduplication before sending. Comment alerts go to the moment owner, excluding their own comments.
 
+New moments are always sent with notifications eligible for delivery; each recipient controls incoming alerts on the Notifications page. Sender-side quiet controls have been removed.
+
 The client requests notification permission, registers its Expo push token, refreshes registration after device-token changes and foregrounding, and disables the token on logout. Tapping a notification opens the associated screen only after checking current access. Foreground events use the existing in-app banner; Android displays remote alerts in the background. No continuous background polling is added.
 
 Configured October 26, 2026: Expo project `@reverieasy/wyd` is linked; Firebase project `watchudoin` matches `com.watchudoin.app`; the FCM V1 service-account key is assigned in EAS; and the Android client file is stored in EAS build environments. A Google FCM `validate_only` request returned HTTP 200 without delivering a message. The Supabase notification worker is active and the push endpoint rejects unauthenticated calls. Physical-phone delivery still needs checking after installing the new native build.
@@ -21,6 +23,6 @@ For EAS cloud builds, supply the Android client JSON using an EAS **file environ
 
 ## Verify on two physical phones
 
-Use two accepted accounts with notifications allowed. Turn Send quietly off when testing photo alerts. Send a moment, reaction, comment, and Nudge while the recipient app is backgrounded, then after closing it normally. Verify the Android tray/banner, the notification tap route, preferences, and revocation after blocking or leaving a circle. An Android force-stop can prevent delivery until the app is opened again. Test logout so a signed-out account does not receive new alerts. Do not treat an Expo push ticket as proof of phone delivery; inspect Expo receipts when diagnosing failures.
+Use two accepted accounts with notifications allowed. Send a moment, reaction, comment, and Nudge while the recipient app is backgrounded, then after closing it normally. Verify the Android tray/banner, the notification tap route, preferences, and revocation after blocking or leaving a circle. An Android force-stop can prevent delivery until the app is opened again. Test logout so a signed-out account does not receive new alerts. Do not treat an Expo push ticket as proof of phone delivery; inspect Expo receipts when diagnosing failures.
 
 See the official [Expo SDK 57 Notifications reference](https://docs.expo.dev/versions/v57.0.0/sdk/notifications/), [FCM V1 credentials guide](https://docs.expo.dev/push-notifications/fcm-credentials/), and [push setup guide](https://docs.expo.dev/push-notifications/push-notifications-setup/).

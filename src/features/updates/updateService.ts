@@ -11,7 +11,6 @@ type SendUpdateInput = {
   circleIds?: string[];
   caption: string;
   statusText: string | null;
-  isQuiet: boolean;
   clientRequestId: string;
 };
 
@@ -65,7 +64,8 @@ export const updateService = {
         p_recipient_ids: input.recipientIds,
         p_caption: input.caption.trim() || null,
         p_status_text: input.statusText?.trim() || null,
-        p_is_quiet: input.isQuiet,
+        // Notifications are controlled by recipients' notification preferences.
+        p_is_quiet: false,
         p_client_request_id: input.clientRequestId,
         ...(circleIds.length ? { p_circle_ids: circleIds } : {}),
       });

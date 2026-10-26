@@ -32,7 +32,6 @@ import type { ActivityItem, ConnectionInvite, ConnectionWithPerson, DraftPhoto, 
 
 export type Preferences = {
   nudgesEnabled: boolean;
-  quietUpdatesEnabled: boolean;
   recentMomentsDays: number;
   privacy: 'selected-people';
 };
@@ -144,7 +143,6 @@ type Action =
   | { type: 'SET_DRAFT_RECIPIENTS'; userIds: UserId[] }
   | { type: 'SET_DRAFT_CIRCLES'; circleIds: string[] }
   | { type: 'SET_DRAFT_CAPTION'; caption: string }
-  | { type: 'SET_DRAFT_QUIET'; isQuiet: boolean }
   | { type: 'PREPARE_NUDGE_RESPONSE'; nudgeId: string; senderId: UserId }
   | { type: 'DRAFT_SENDING'; sending: boolean }
   | { type: 'DRAFT_STAGE'; stage: UpdateDraft['sendStage'] }
@@ -206,8 +204,8 @@ const initialState: AppState = {
   },
   local: {
     onboardingComplete: false,
-    draft: { photo: null, status: null, recipientIds: [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
-    preferences: { nudgesEnabled: true, quietUpdatesEnabled: true, recentMomentsDays: 30, privacy: 'selected-people' },
+    draft: { photo: null, status: null, recipientIds: [], circleIds: [], caption: '', sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+    preferences: { nudgesEnabled: true, recentMomentsDays: 30, privacy: 'selected-people' },
   },
 };
 
@@ -422,7 +420,6 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: selected ? state.local.draft.recipientIds.filter((id) => id !== action.userId) : [...state.local.draft.recipientIds, action.userId] } } };
     }
     case 'SET_DRAFT_CAPTION': return { ...state, local: { ...state.local, draft: { ...state.local.draft, caption: action.caption, error: null } } };
-    case 'SET_DRAFT_QUIET': return { ...state, local: { ...state.local, draft: { ...state.local.draft, isQuiet: action.isQuiet } } };
     case 'PREPARE_NUDGE_RESPONSE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [action.senderId], circleIds: [], respondingToNudgeId: action.nudgeId, error: null } } };
     case 'DRAFT_SENDING': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sending: action.sending, sendStage: action.sending ? state.local.draft.sendStage : 'idle', error: null } } };
     case 'DRAFT_STAGE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sendStage: action.stage } } };
@@ -441,7 +438,7 @@ function reducer(state: AppState, action: Action): AppState {
         },
         local: {
           ...state.local,
-          draft: { photo: null, status: null, recipientIds: defaultRecipient ? [defaultRecipient] : [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+          draft: { photo: null, status: null, recipientIds: defaultRecipient ? [defaultRecipient] : [], circleIds: [], caption: '', sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
         },
       };
     }
@@ -482,7 +479,6 @@ type AppActions = {
   setDraftRecipients: (userIds: UserId[]) => void;
   setDraftCircles: (circleIds: string[]) => void;
   setDraftCaption: (caption: string) => void;
-  setDraftQuiet: (isQuiet: boolean) => void;
   sendDraft: () => Promise<string | null>;
   refreshUpdates: () => Promise<void>;
   loadMoreUpdates: () => Promise<void>;
@@ -1042,7 +1038,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setDraftRecipients: (userIds) => dispatch({ type: 'SET_DRAFT_RECIPIENTS', userIds }),
     setDraftCircles: (circleIds) => dispatch({ type: 'SET_DRAFT_CIRCLES', circleIds }),
     setDraftCaption: (caption) => dispatch({ type: 'SET_DRAFT_CAPTION', caption }),
-    setDraftQuiet: (isQuiet) => dispatch({ type: 'SET_DRAFT_QUIET', isQuiet }),
     sendDraft: async () => {
       const profile = state.server.profile;
       const session = state.server.session;
@@ -1080,7 +1075,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           circleIds,
           caption: draft.caption,
           statusText: draft.status ? statusDetails[draft.status].label : null,
-          isQuiet: draft.isQuiet,
           clientRequestId,
         }, (stage) => dispatch({ type: 'DRAFT_STAGE', stage }));
         const update: MomentUpdate = {
