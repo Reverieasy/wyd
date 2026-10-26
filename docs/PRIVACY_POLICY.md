@@ -19,7 +19,7 @@ We use information to authenticate users, deliver private moments to selected re
 
 ## Service providers and disclosure
 
-Supabase provides authentication, database, Edge Functions, realtime delivery, and private file storage. Expo provides app tooling and push-notification delivery. These providers process data on our behalf. We do not sell personal information or use it for third-party advertising.
+Supabase provides authentication, database, Edge Functions, realtime delivery, and private file storage. Expo provides app tooling and push-notification delivery. Firebase Cloud Messaging delivers Android notifications. These providers process data on our behalf. We do not sell personal information or use it for third-party advertising.
 
 Information may be disclosed when required by law, to protect users or the service, or during a corporate transaction subject to appropriate safeguards.
 

@@ -723,13 +723,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void notificationService.configureChannel();
+    const stopTokenListener = notificationService.listenForTokenChanges(() => { void registerPushIfGranted().catch(() => undefined); });
     const subscription = NativeAppState.addEventListener('change', (nextState) => {
       const userId = stateRef.current.server.session?.user.id;
       if (nextState !== 'active' || !userId) return;
       void refreshAuthoritative(userId);
       void registerPushIfGranted().catch(() => undefined);
     });
-    return () => subscription.remove();
+    return () => { subscription.remove(); stopTokenListener(); };
   }, [refreshAuthoritative, registerPushIfGranted]);
 
   const offerNotificationPrompt = useCallback(async (userId: string) => {
@@ -1247,7 +1248,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'NOTIFICATION_PROMPT', visible: false });
         if (permission === 'granted') await registerPushIfGranted(true);
         else if (permission === 'denied') dispatch({ type: 'NOTIFICATION_ERROR', error: 'Notifications are off in system settings.' });
-        else if (permission === 'unavailable') dispatch({ type: 'NOTIFICATION_ERROR', error: 'Remote notifications require a physical device and development build.' });
+        else if (permission === 'unavailable') dispatch({ type: 'NOTIFICATION_ERROR', error: 'Phone notifications need a configured Android build on a physical phone. In-app alerts still work.' });
       } catch (error) {
         dispatch({ type: 'NOTIFICATION_ERROR', error: readableServiceError(error).message });
       }

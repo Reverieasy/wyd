@@ -7,7 +7,7 @@ import { useAppStore } from '@/src/state/appStore';
 import { useTheme } from '@/src/theme/ThemeProvider';
 import { AppText } from './primitives/AppText';
 
-export function PhotoDownloadButton({ updateId }: { updateId: string }) {
+export function PhotoDownloadButton({ updateId, overlay = false }: { updateId: string; overlay?: boolean }) {
   const { state } = useAppStore(), { colors } = useTheme();
   const userId = state.server.session?.user.id;
   const currentUser = useRef(userId); currentUser.current = userId;
@@ -53,9 +53,9 @@ export function PhotoDownloadButton({ updateId }: { updateId: string }) {
       }
     } catch (err) { pending.current = false; setBusy(false); setMessage(photoExportMessage(err)); }
   };
-  return <View style={{ gap: 4, alignSelf: 'flex-start' }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'Saving photo' : 'Download photo with watermark'} accessibilityState={{ busy, disabled: busy || !userId }} disabled={busy || !userId} onPress={() => void save()} style={[styles.button, { backgroundColor: colors.background.accentSoft }]}>{busy ? <ActivityIndicator size="small" color={colors.background.accent} /> : <Feather name="download" color={colors.background.accent} size={21} />}</Pressable>
-    {message ? <AppText accessibilityLiveRegion="polite" variant="caption11" tone="secondary">{message}</AppText> : null}
+  return <View style={{ gap: 4, alignSelf: 'flex-start', alignItems: overlay ? 'flex-end' : 'flex-start' }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={busy ? 'Saving photo' : 'Download photo with watermark'} accessibilityState={{ busy, disabled: busy || !userId }} disabled={busy || !userId} onPress={() => void save()} style={[styles.button, { backgroundColor: overlay ? 'rgba(0,0,0,0.55)' : colors.background.accentSoft }]}>{busy ? <ActivityIndicator size="small" color={overlay ? 'white' : colors.background.accent} /> : <Feather name="download" color={overlay ? 'white' : colors.background.accent} size={21} />}</Pressable>
+    {message ? <AppText accessibilityLiveRegion="polite" variant="caption11" tone="secondary" style={overlay ? { color: 'white', backgroundColor: 'rgba(0,0,0,0.8)', padding: 8, borderRadius: 10, maxWidth: 220 } : undefined}>{message}</AppText> : null}
     <Modal transparent visible={source !== null} animationType="none" onRequestClose={() => {}}><View style={styles.backdrop}>
       <View ref={captureView} collapsable={false} onLayout={() => setLaidOut(true)} style={{ width: viewWidth, height: viewWidth / ratio, backgroundColor: 'black' }}>
         {source ? <Image source={source} contentFit="contain" cachePolicy="none" allowDownscaling={false} style={StyleSheet.absoluteFill} onLoad={event => setDimensions(exportDimensions(event.source.width, event.source.height))} onError={() => { pending.current = false; setBusy(false); setSource(null); setMessage('Could not load this photo. Please try again.'); }} /> : null}

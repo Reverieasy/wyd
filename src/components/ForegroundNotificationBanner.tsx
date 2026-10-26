@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ForegroundActivityTracker } from '@/src/features/notifications/foregroundActivity';
-import { notificationService } from '@/src/features/notifications/notificationService';
 import { useAppStore } from '@/src/state/appStore';
 import type { ActivityItem } from '@/src/models';
 import { reactionEmoji } from '@/src/models';
@@ -22,7 +21,6 @@ export function ForegroundNotificationBanner() {
   const [active, setActive] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const userId = state.server.session?.user.id ?? null;
   const previousUser = useRef(userId);
-  const systemBanner = state.server.notificationPermission === 'granted' && notificationService.usesSystemBanners();
   const preferences = state.server.notificationPreferences;
 
   useEffect(() => {
@@ -33,13 +31,13 @@ export function ForegroundNotificationBanner() {
   useEffect(() => {
     if (previousUser.current !== userId) { previousUser.current = userId; setQueue([]); }
     const fresh = tracker.read(userId, state.server.activityHydrated, state.server.activity, preferences, active);
-    if (!active || systemBanner || !preferences.enabled) { setQueue([]); return; }
+    if (!active || !preferences.enabled) { setQueue([]); return; }
     setQueue(current => {
       const allowed = current.filter(item => item.kind === 'moment' ? preferences.moments : item.kind === 'comment' ? preferences.comments : preferences.reactions);
       if (!fresh.length && allowed.length === current.length) return current;
       return [...allowed, ...fresh].slice(-4);
     });
-  }, [tracker, userId, state.server.activityHydrated, state.server.activity, preferences, active, systemBanner]);
+  }, [tracker, userId, state.server.activityHydrated, state.server.activity, preferences, active]);
 
   const item = queue[0];
   useEffect(() => {
@@ -48,7 +46,7 @@ export function ForegroundNotificationBanner() {
     return () => clearTimeout(timer);
   }, [item]);
 
-  if (!item || !userId || previousUser.current !== userId || !active || !preferences.enabled || systemBanner || state.server.notificationPromptVisible) return null;
+  if (!item || !userId || previousUser.current !== userId || !active || !preferences.enabled || state.server.notificationPromptVisible) return null;
   const dismiss = () => setQueue(current => current.slice(1));
   const open = () => { dismiss(); router.push({ pathname: '/(flows)/moment/[id]', params: { id: item.updateId! } }); };
   const message = item.kind === 'moment' ? 'Sent you a photo moment' : item.kind === 'comment' ? 'Commented on your moment' : `Reacted ${item.reaction ? reactionEmoji[item.reaction] : '❤️'} to your moment`;

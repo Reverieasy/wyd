@@ -3,15 +3,18 @@ import { getWidgetApi } from './nativeWidgetApi.android';
 import { loadWidgetSnapshot } from './widgetData.android';
 import { MOMENT_WIDGET_NAME, emptyWidget, type WidgetSettings, type WidgetSnapshot } from './widgetModel';
 import { widgetStorage } from './widgetStorage';
+import { readWidgetAppearance } from './widgetAppearance';
+import type { AppearanceMode } from '@/src/theme/appearance';
 
 let revision = 0;
 let redactionMode: 'setup' | 'signed-out' = 'signed-out';
 let refreshTask: Promise<void> = Promise.resolve();
-function render(snapshot: WidgetSnapshot, width: number, height: number) {
+function render(snapshot: WidgetSnapshot, width: number, height: number, mode: AppearanceMode) {
   // Loading widget primitives before the native module check would crash Expo Go
   // and old installed builds, even when no widget has been added.
   const { MomentWidget } = require('./MomentWidget.android') as typeof import('./MomentWidget.android');
-  return createElement(MomentWidget, { snapshot, width, height });
+  const view = (isDark: boolean) => createElement(MomentWidget, { snapshot, width, height, isDark });
+  return mode === 'system' ? { light: view(false), dark: view(true) } : view(mode === 'dark');
 }
 export const widgetService = {
   isAvailable: () => getWidgetApi() !== null,
@@ -34,9 +37,9 @@ export const widgetService = {
     refreshTask = refreshTask.catch(() => undefined).then(async () => {
       const widgets = await api.getWidgetInfo(MOMENT_WIDGET_NAME);
       if (!widgets.length || ownRevision !== revision) return;
-      const snapshot = await loadWidgetSnapshot().catch(() => emptyWidget('unavailable'));
+      const [snapshot, mode] = await Promise.all([loadWidgetSnapshot().catch(() => emptyWidget('unavailable')), readWidgetAppearance()]);
       await Promise.all(widgets.map(widget => api.requestWidgetUpdateById({ widgetName: MOMENT_WIDGET_NAME, widgetId: widget.widgetId,
-        renderWidget: info => render(ownRevision === revision ? snapshot : emptyWidget(redactionMode), info.width, info.height),
+        renderWidget: info => render(ownRevision === revision ? snapshot : emptyWidget(redactionMode), info.width, info.height, mode),
       })));
     });
     return refreshTask;
@@ -48,8 +51,9 @@ export const widgetService = {
     const api = getWidgetApi();
     if (!api) return;
     const widgets = await api.getWidgetInfo(MOMENT_WIDGET_NAME);
+    const appearance = await readWidgetAppearance();
     await Promise.all(widgets.map(widget => api.requestWidgetUpdateById({ widgetName: MOMENT_WIDGET_NAME, widgetId: widget.widgetId,
-      renderWidget: info => render(emptyWidget(mode), info.width, info.height),
+      renderWidget: info => render(emptyWidget(mode), info.width, info.height, appearance),
     })));
   },
 };

@@ -2,7 +2,7 @@
   "expo": {
     "name": "watchudoin?",
     "slug": "wyd",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "scheme": "watchudoin",
     "icon": "./assets/app-icon-safe.png",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.watchudoin.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/app-icon-safe.png"
@@ -45,7 +45,7 @@
         {
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#6C56C7",
-          "defaultChannel": "watchu-doin"
+          "defaultChannel": "watchudoin-updates"
         }
       ],
       [
@@ -91,6 +91,13 @@
           "granularPermissions": []
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bbe25d66-2e9a-4e67-87b8-b7f5055685dd"
+      }
+    },
+    "owner": "reverieasy"
   }
 }

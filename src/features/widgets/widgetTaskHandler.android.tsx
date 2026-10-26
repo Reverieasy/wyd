@@ -7,6 +7,7 @@ import { loadWidgetSnapshot } from './widgetData.android';
 import { MOMENT_WIDGET_NAME, emptyWidget, type WidgetSnapshot } from './widgetModel';
 import { widgetStorage } from './widgetStorage';
 import { getWidgetApi } from './nativeWidgetApi.android';
+import { readWidgetAppearance } from './widgetAppearance';
 
 let nudging = false;
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
@@ -16,9 +17,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     if (!remaining?.some(widget => widget.widgetId !== props.widgetInfo.widgetId)) await widgetStorage.clearPhoto();
     return;
   }
-  const render = (snapshot: WidgetSnapshot, button: 'idle' | 'sending' | 'sent' = 'idle', feedback?: string) => props.renderWidget(
-    <MomentWidget snapshot={snapshot} width={props.widgetInfo.width} height={props.widgetInfo.height} button={button} feedback={feedback} />,
-  );
+  const mode = await readWidgetAppearance();
+  const render = (snapshot: WidgetSnapshot, button: 'idle' | 'sending' | 'sent' = 'idle', feedback?: string) => {
+    const view = (isDark: boolean) => <MomentWidget snapshot={snapshot} width={props.widgetInfo.width} height={props.widgetInfo.height} button={button} feedback={feedback} isDark={isDark} />;
+    props.renderWidget(mode === 'system' ? { light: view(false), dark: view(true) } : view(mode === 'dark'));
+  };
   // The native headless worker has a 30-second limit. Finish its UI update before
   // that deadline even on slow networks; the server still enforces nudge cooldowns.
   const deadline = Date.now() + 25_000;

@@ -31,3 +31,12 @@ test('the widget send state cannot issue another Nudge', () => {
   const button = nodes(tree).find(n => n.props?.text === 'Sending…');
   assert.equal(button.props.clickAction, undefined);
 });
+
+test('dark and light widgets keep their text readable without changing Nudge actions', () => {
+  for (const isDark of [true, false]) {
+    const tree = widgetModule.exports.MomentWidget({ snapshot, width: 320, height: 145, isDark });
+    assert.equal(tree.props.style.backgroundGradient.from, isDark ? '#211B29' : '#FFFFFF');
+    assert.equal(nodes(tree).find(n => n.props?.text === 'Ara').props.style.color, isDark ? '#F5EFFB' : '#100C26');
+    assert.equal(nodes(tree).find(n => n.props?.text === 'Nudge').props.clickAction, 'NUDGE_PERSON');
+  }
+});

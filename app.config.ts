@@ -1,14 +1,10 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+const { configureProjectPush } = require('./scripts/push-config.cjs');
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim();
-  return {
+  return configureProjectPush({
     ...config,
-    name: config.name ?? 'watchu doin?',
+    name: config.name ?? 'watchudoin?',
     slug: config.slug ?? 'wyd',
-    extra: {
-      ...config.extra,
-      ...(projectId ? { eas: { projectId } } : {}),
-    },
-  };
+  }, process.env);
 };

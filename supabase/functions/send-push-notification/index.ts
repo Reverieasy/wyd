@@ -138,7 +138,7 @@ Deno.serve(async (request: Request) => {
       actorId: callerId,
       recipientIds: [update.sender_id],
       title: `reacted ${reactionSymbol(reaction.reaction)} to your moment`,
-      body: "Open Watchu Doin? to see it.",
+      body: "Open watchudoin? to see it.",
       data: { type, updateId: reaction.update_id, reactionId: eventId },
       preference: "reactions",
     };
@@ -152,7 +152,7 @@ Deno.serve(async (request: Request) => {
         actorId: callerId,
         recipientIds: [connection.addressee_id],
         title: "wants to connect",
-        body: "Open Watchu Doin? to respond.",
+        body: "Open watchudoin? to respond.",
         data: { type, connectionId: eventId },
         preference: "connections",
       };
@@ -215,7 +215,8 @@ Deno.serve(async (request: Request) => {
   const messages = claims.map((claim) => ({
     to: claim.token,
     sound: "default",
-    channelId: "watchu-doin",
+    channelId: "watchudoin-updates",
+    priority: "high",
     title: type === "connection_accepted" ? `${target.title} with ${actorName}` : `${actorName} ${target.title}`,
     body: target.body,
     data: target.data,

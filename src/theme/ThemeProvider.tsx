@@ -2,12 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { colors as lightColors, gradients as lightGradients } from './colors';
+import { APPEARANCE_STORAGE_KEY as KEY, type AppearanceMode as Mode } from './appearance';
 
 export type ThemeColors = { [K in keyof typeof lightColors]: { [P in keyof typeof lightColors[K]]: string } };
 export type ThemeGradients = { [K in keyof typeof lightGradients]: readonly [string, string] };
 export type Theme = { colors: ThemeColors; gradients: ThemeGradients; isDark: boolean };
-type Mode = 'light' | 'dark' | 'system';
-const KEY = 'wyd.appearance.v1';
 const darkColors: ThemeColors = {
   background: { app: '#141119', card: '#211B29', subtle: '#2B2334', accent: '#B394FF', accentSoft: '#362447', loveSoft: '#452537', camera: '#121214', cameraPreview: '#2B2B30' },
   text: { primary: '#F5EFFB', secondary: '#B5A9C0', heading: '#E2CEFF', onAccent: '#FFFFFF', onCameraMuted: '#B6B0B2' },

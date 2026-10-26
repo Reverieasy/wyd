@@ -39,8 +39,10 @@ if (nativeNotifications) {
   const Notifications = nativeNotifications;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
+      // Foreground activity uses the in-app banner; Android displays remote
+      // notification payloads itself while the app is backgrounded or closed.
+      shouldShowBanner: false,
+      shouldShowList: false,
       shouldPlaySound: false,
       shouldSetBadge: false,
     }),
@@ -53,18 +55,19 @@ function projectId() {
     ?? process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim();
 }
 
+function pushConfigured() {
+  return Boolean(projectId()) && (Platform.OS !== 'android' || Constants.expoConfig?.extra?.pushNotifications?.androidConfigured === true);
+}
+
 export const notificationService = {
-  usesSystemBanners() {
-    return Platform.OS !== 'web' && Device.isDevice && Boolean(projectId()) && getNotificationsModule() !== null;
-  },
   async configureChannel() {
     if (Platform.OS !== 'android') return;
     const Notifications = getNotificationsModule();
     if (!Notifications) return;
     try {
-      await Notifications.setNotificationChannelAsync('watchu-doin', {
+      await Notifications.setNotificationChannelAsync('watchudoin-updates', {
         name: 'watchudoin?',
-        importance: Notifications.AndroidImportance.DEFAULT,
+        importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 180],
         lightColor: '#6C56C7',
       });
@@ -75,7 +78,7 @@ export const notificationService = {
 
   async permissionState(): Promise<NotificationPermissionState> {
     try {
-      if (Platform.OS === 'web' || !Device.isDevice || !projectId()) return 'unavailable';
+      if (Platform.OS === 'web' || !Device.isDevice || !pushConfigured()) return 'unavailable';
       const Notifications = getNotificationsModule();
       if (!Notifications) return 'unavailable';
       const permission = await Notifications.getPermissionsAsync();
@@ -88,7 +91,7 @@ export const notificationService = {
 
   async requestPermission(): Promise<NotificationPermissionState> {
     try {
-      if (Platform.OS === 'web' || !Device.isDevice || !projectId()) return 'unavailable';
+      if (Platform.OS === 'web' || !Device.isDevice || !pushConfigured()) return 'unavailable';
       const Notifications = getNotificationsModule();
       if (!Notifications) return 'unavailable';
       await this.configureChannel();
@@ -105,8 +108,18 @@ export const notificationService = {
     if (!Notifications) throw new Error('Push notifications require a development build.');
     const easProjectId = projectId();
     if (!easProjectId) throw new Error('EAS project ID is not configured. Link this project with EAS before registering push notifications.');
+    if (!pushConfigured()) throw new Error('Firebase is not configured in this app build. Install the updated Android build.');
     const token = await Notifications.getExpoPushTokenAsync({ projectId: easProjectId });
     return token.data;
+  },
+
+  listenForTokenChanges(onChange: () => void) {
+    const Notifications = getNotificationsModule();
+    if (!Notifications || !pushConfigured()) return () => undefined;
+    try {
+      const subscription = Notifications.addPushTokenListener(() => onChange());
+      return () => subscription.remove();
+    } catch { return () => undefined; }
   },
 
   listen(onReceive: (data: AppNotificationData) => void, onResponse: (identifier: string, data: AppNotificationData) => void) {

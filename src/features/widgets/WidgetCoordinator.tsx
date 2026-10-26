@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useAppStore } from '@/src/state/appStore';
 import { widgetService } from './widgetService';
+import { useTheme } from '@/src/theme/ThemeProvider';
 
 export function WidgetCoordinator() {
   const { state } = useAppStore();
+  const { mode } = useTheme();
   const userId = state.server.session?.user.id ?? null;
   const previousUser = useRef(userId);
   const updateKey = state.server.updates.filter(update => update.senderId !== userId).map(update => `${update.id}:${update.expiresAt}`).join('|');
@@ -16,7 +18,7 @@ export function WidgetCoordinator() {
     if (!userId || state.server.updatesLoading) return;
     const timer = setTimeout(() => void widgetService.refresh().catch(() => undefined), 700);
     return () => clearTimeout(timer);
-  }, [userId, updateKey, peopleKey, state.server.updatesLoading]);
+  }, [userId, updateKey, peopleKey, state.server.updatesLoading, mode]);
   useEffect(() => {
     if (!widgetService.isAvailable()) return;
     const listener = AppState.addEventListener('change', value => { if (value === 'active') void widgetService.refresh().catch(() => undefined); });

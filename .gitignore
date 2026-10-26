@@ -48,3 +48,9 @@ yarn-error.*
 
 # Supabase CLI cache
 supabase/.temp/
+
+# Private Firebase / push setup files
+.push/
+google-services.json
+credentials.json
+*-firebase-adminsdk-*.json

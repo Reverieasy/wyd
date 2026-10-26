@@ -121,6 +121,13 @@ export default function CameraRoute() {
     }
   };
 
+  const flipCamera = () => {
+    if (working) return;
+    setReady(false);
+    setZoom(0);
+    setFacing(current => current === 'back' ? 'front' : 'back');
+  };
+
   if (!permission) {
     return <Screen dark contentStyle={styles.centered}><ActivityIndicator color={colors.text.onAccent} /></Screen>;
   }
@@ -152,7 +159,7 @@ export default function CameraRoute() {
         <Pressable accessibilityLabel="Close camera" accessibilityRole="button" style={styles.control} onPress={() => router.replace('/(tabs)/people')}><MaterialIcons name="close" color="white" size={25} /></Pressable>
         <View style={{ flex: 1 }} />
         <Pressable accessibilityRole="button" accessibilityLabel={'Flash: ' + flash + '. Tap to change.'} onPress={() => setFlash(value => value === 'off' ? 'on' : value === 'on' ? 'auto' : 'off')} style={styles.control}><MaterialIcons name={flash === 'off' ? 'flash-off' : flash === 'auto' ? 'flash-auto' : 'flash-on'} size={23} color="white" /></Pressable>
-        <Pressable accessibilityLabel="Flip camera" accessibilityRole="button" style={styles.control} onPress={() => { setReady(false); setZoom(0); setFacing((current) => current === 'back' ? 'front' : 'back'); }}>
+        <Pressable accessibilityLabel="Flip camera" accessibilityRole="button" disabled={working} style={styles.control} onPress={flipCamera}>
           <MaterialIcons name="flip-camera-android" size={23} color="white" />
         </Pressable>
       </View>
@@ -180,8 +187,8 @@ export default function CameraRoute() {
         <Pressable accessibilityLabel="Take photo" accessibilityRole="button" accessibilityState={{ disabled: !ready || working, busy: working }} disabled={!ready || working} onPress={() => void capture()} style={[styles.shutterOuter, (!ready || working) && styles.disabled]}>
           {working ? <ActivityIndicator color={colors.text.onAccent} /> : <ShutterArtwork />}
         </Pressable>
-        <Pressable accessibilityLabel="Reset camera zoom and flash" accessibilityRole="button" onPress={() => { setZoom(0); setFlash('off'); }} style={styles.libraryButton}>
-          <MaterialIcons name="sync" size={24} color="white" />
+        <Pressable accessibilityLabel="Flip camera beside shutter" accessibilityRole="button" disabled={working} onPress={flipCamera} style={styles.libraryButton}>
+          <MaterialIcons name="flip-camera-android" size={24} color="white" />
         </Pressable>
       </View>
     </Screen>

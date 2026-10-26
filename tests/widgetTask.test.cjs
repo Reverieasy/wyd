@@ -24,6 +24,7 @@ function harness(send = async () => ({ id: 'nudge' }), sendPush = async () => un
     './MomentWidget.android': { MomentWidget: 'Widget' },
     './widgetData.android': { async loadWidgetSnapshot() { if (controls.offline) throw Error('offline'); return controls.snapshot; } },
     './widgetModel': model,
+    './widgetAppearance': { readWidgetAppearance: async () => 'dark' },
     './widgetStorage': { widgetStorage: { getSettings: async () => controls.settings, async clearPhoto() { controls.cleared++; } } },
     './nativeWidgetApi.android': { getWidgetApi: () => ({ getWidgetInfo: async () => [] }) },
   });

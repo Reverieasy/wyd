@@ -89,11 +89,10 @@ export default function MomentDetailRoute() {
       ) : null}
       {visibleUpdate ? (
         <View style={{ gap: 10 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open full photo" onPress={() => setFullPhoto(true)}><MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} contentFit="contain" radius={18} style={{ aspectRatio: photoAspect }} onSize={(width, height) => { if (width && height) setPhotoAspect(Math.max(0.3, Math.min(3, width / height))); }} onLoadError={refreshExpiredPhoto} /><View pointerEvents="none" style={styles.expandPhoto}><Feather name="maximize-2" color="white" size={17} /></View></Pressable>
+          <View style={{ position: 'relative' }}><Pressable accessibilityRole="button" accessibilityLabel="Open full photo" onPress={() => setFullPhoto(true)}><MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} contentFit="contain" radius={18} style={{ aspectRatio: photoAspect }} onSize={(width, height) => { if (width && height) setPhotoAspect(Math.max(0.3, Math.min(3, width / height))); }} onLoadError={refreshExpiredPhoto} /><View pointerEvents="none" style={styles.expandPhoto}><Feather name="maximize-2" color="white" size={17} /></View></Pressable><View style={styles.photoDownload}><PhotoDownloadButton overlay updateId={visibleUpdate.id} /></View></View>
           <View style={styles.metadata}>
             <View style={styles.authorRow}><View><Avatar name={visibleUpdate.sender.displayName} uri={visibleUpdate.sender.avatarUrl ?? undefined} size={44} />{visibleUpdate.senderId === profileId ? <View accessible={false} style={styles.avatarDot} /> : null}</View><View style={{ flex: 1, gap: 3 }}><AppText style={styles.author}><AppText style={styles.title}>{visibleUpdate.senderId === profileId ? 'You' : visibleUpdate.sender.displayName}</AppText> · {visibleUpdate.statusText ?? 'Moment'}</AppText><AppText style={styles.time}>{relativeTime(visibleUpdate.createdAt)} ago</AppText></View></View>
             {visibleUpdate.caption ? <AppText variant="body14">{visibleUpdate.caption}</AppText> : null}
-            <PhotoDownloadButton updateId={visibleUpdate.id} />
             {profileId && visibleUpdate.senderId !== profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Report moment" onPress={() => router.push({ pathname: '/(flows)/report', params: { updateId: visibleUpdate.id, userId: visibleUpdate.senderId, name: visibleUpdate.sender.displayName } })} style={styles.report}><AppText variant="caption11" tone="secondary">Report moment</AppText></Pressable> : null}
             {profileId ? (
             <View style={styles.reactionRow}><View style={styles.reactionPill}><ReactionBar compact
@@ -121,6 +120,7 @@ const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
   title: { fontSize: 14, lineHeight: 21, fontFamily: 'PlusJakartaSans_700Bold', color: isDark ? colors.text.primary : '#150B32' },
   spacer: { alignItems: 'center', justifyContent: 'center', height: 44, width: 44, borderRadius: 22, backgroundColor: isDark ? colors.background.accentSoft : '#F0E9FF' },
   headerBalance: { width: 44 }, report: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  photoDownload: { position: 'absolute', top: 10, right: 10 },
   expandPhoto: { position: 'absolute', right: 10, bottom: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, author: { fontSize: 14, lineHeight: 21, color: isDark ? colors.text.primary : '#150B32' }, time: { fontSize: 11, lineHeight: 17, color: isDark ? colors.text.secondary : '#948AA8' },
   avatarDot: { position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: '#BD96FF', borderWidth: 1, borderColor: colors.background.card },

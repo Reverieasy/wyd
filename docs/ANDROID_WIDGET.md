@@ -6,6 +6,8 @@ status, relative time, and a Nudge button. Tapping the photo opens the moment.
 Nudge sends directly from the widget; Android RemoteViews support taps, rather
 than the app's press-and-hold gesture.
 
+The widget follows the app appearance setting. Dark uses a deep purple card with light text and a muted placeholder. Light preserves the white card. System supplies native day/night variants so Android can switch the widget theme while the app is closed.
+
 ## Build and add
 
 This adds native code. It requires a new Android development or production build;
