@@ -1,8 +1,9 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 
 import type { PhotoAsset } from '@/src/models';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 import { Avatar } from './Avatar';
 import { MomentPhoto } from './MomentPhoto';
 import { AppText } from './primitives/AppText';
@@ -31,6 +32,7 @@ export function UpdateCard({
   footer,
   onPhotoError,
 }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <View style={[styles.card, style]}>
       <MomentPhoto photo={photo} onLoadError={onPhotoError} />
@@ -49,7 +51,7 @@ export function UpdateCard({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   card: {
     backgroundColor: colors.background.card,
     borderRadius: radii[28],

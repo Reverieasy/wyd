@@ -8,6 +8,7 @@ type SendUpdateInput = {
   userId: string;
   photo: DraftPhoto;
   recipientIds: string[];
+  circleIds?: string[];
   caption: string;
   statusText: string;
   isQuiet: boolean;
@@ -24,6 +25,7 @@ const updateErrors: Record<string, string> = {
   recipient_required: 'Choose at least one person.',
   too_many_recipients: 'You selected too many people for one update.',
   recipient_not_connected: 'You can only send updates to accepted connections.',
+  circle_member_required: 'Join this circle and wait for host approval before sharing.',
   terms_required: 'Accept the current Terms of Use before sharing a moment.',
   blocked_relationship: 'You cannot share a moment with this person.',
   request_id_required: 'This draft could not be prepared. Retake the photo and try again.',
@@ -48,7 +50,7 @@ export const updateService = {
   async send(input: SendUpdateInput, onStage?: (stage: SendStage) => void): Promise<{ row: UpdateRowType; photoUrl: string | null }> {
     if (input.caption.length > 150) throw new ServiceError(updateErrors.caption_too_long, 'caption_too_long');
     if (input.statusText.length > 40) throw new ServiceError(updateErrors.status_too_long, 'status_too_long');
-    if (input.recipientIds.length === 0) throw new ServiceError(updateErrors.recipient_required, 'recipient_required');
+    if (input.recipientIds.length === 0 && !input.circleIds?.length) throw new ServiceError(updateErrors.recipient_required, 'recipient_required');
     onStage?.('preparing');
     const photo = await photoService.prepare(input.photo);
     onStage?.('uploading');
@@ -57,13 +59,15 @@ export const updateService = {
     let row: UpdateRowType;
     try {
       onStage?.('creating');
-      const { data, error } = await getSupabase().rpc('create_update_v2', {
+      const circleIds = input.circleIds ?? [];
+      const { data, error } = await getSupabase().rpc(circleIds.length ? 'create_circle_update' : 'create_update_v2', {
         p_photo_path: photoPath,
         p_recipient_ids: input.recipientIds,
         p_caption: input.caption.trim() || null,
         p_status_text: input.statusText.trim() || null,
         p_is_quiet: input.isQuiet,
         p_client_request_id: input.clientRequestId,
+        ...(circleIds.length ? { p_circle_ids: circleIds } : {}),
       });
       if (error) throw error;
       if (!data?.[0]) throw new ServiceError('The update was not created. Please try again.', 'update_missing');
@@ -74,6 +78,7 @@ export const updateService = {
         'invalid_photo_path', 'caption_too_long', 'status_too_long', 'recipient_required',
         'too_many_recipients', 'recipient_not_connected', 'terms_required', 'blocked_relationship',
         'request_id_required',
+        'circle_member_required',
       ]).has(mapped.code);
       if (safeToRemove) {
         try { await photoService.remove(photoPath); }
@@ -82,13 +87,7 @@ export const updateService = {
       throw mapped;
     }
 
-    let photoUrl: string | null = null;
-    try {
-      photoUrl = await photoService.createSignedUrl(photoPath);
-    } catch {
-      // The update is already committed. A later history refresh can retry signing.
-    }
-    return { row, photoUrl };
+    return { row, photoUrl: photoService.getPhotoUrl(row.photo_path) };
   },
 
   async markSeen(updateId: string) {

@@ -4,6 +4,7 @@ type ProfileRow = {
   id: string;
   username: string;
   display_name: string;
+  bio?: string;
   avatar_path: string | null;
   created_at: string;
   updated_at: string;
@@ -38,6 +39,10 @@ type UpdateRecipientRow = {
   seen_at: string | null;
 };
 
+type CircleRow = { id: string; name: string; host_id: string; created_at: string };
+type CircleMemberRow = { circle_id: string; user_id: string; joined_at: string };
+type CircleRequestRow = { id: string; circle_id: string; requester_id: string; status: 'pending' | 'approved' | 'declined'; created_at: string; decided_at: string | null };
+
 type NudgeRow = {
   id: string;
   sender_id: string;
@@ -58,6 +63,8 @@ type ReactionRow = {
 };
 
 type ActivityReadRow = { user_id: string; last_read_at: string; updated_at: string };
+type MomentCommentRow = { id: string; update_id: string; user_id: string; body: string; created_at: string };
+type MomentCommentWithAuthor = MomentCommentRow & { display_name: string; username: string };
 
 type NotificationPreferencesRow = {
   user_id: string;
@@ -120,6 +127,10 @@ type SupportRequestRow = {
 export type Database = {
   public: {
     Tables: {
+      circles: { Row: CircleRow; Insert: Pick<CircleRow, 'name' | 'host_id'> & Partial<CircleRow>; Update: Partial<CircleRow>; Relationships: [] };
+      circle_members: { Row: CircleMemberRow; Insert: CircleMemberRow; Update: Partial<CircleMemberRow>; Relationships: [] };
+      circle_join_requests: { Row: CircleRequestRow; Insert: CircleRequestRow; Update: Partial<CircleRequestRow>; Relationships: [] };
+      circle_updates: { Row: { circle_id: string; update_id: string }; Insert: { circle_id: string; update_id: string }; Update: { circle_id?: string; update_id?: string }; Relationships: [] };
       profiles: {
         Row: ProfileRow;
         Insert: {
@@ -184,6 +195,12 @@ export type Database = {
         Update: Partial<ReactionRow>;
         Relationships: [];
       };
+      moment_comments: {
+        Row: MomentCommentRow;
+        Insert: Pick<MomentCommentRow, 'update_id' | 'user_id' | 'body'> & Partial<Pick<MomentCommentRow, 'id' | 'created_at'>>;
+        Update: Partial<MomentCommentRow>;
+        Relationships: [];
+      };
       activity_reads: {
         Row: ActivityReadRow;
         Insert: Pick<ActivityReadRow, 'user_id' | 'last_read_at'> & Partial<Pick<ActivityReadRow, 'updated_at'>>;
@@ -235,6 +252,14 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      list_moment_comments: { Args: { p_update_id: string; p_before_created_at?: string; p_before_id?: string; p_limit?: number }; Returns: MomentCommentWithAuthor[] };
+      add_moment_comment: { Args: { p_update_id: string; p_body: string; p_id: string }; Returns: string };
+      delete_moment_comment: { Args: { p_update_id: string; p_id: string }; Returns: boolean };
+      circle_action: { Args: { p_action: string; p_circle_id?: string; p_name?: string; p_code?: string; p_request_id?: string; p_user_id?: string }; Returns: Json };
+      create_circle_update: { Args: { p_photo_path: string; p_recipient_ids: string[]; p_circle_ids: string[]; p_client_request_id: string; p_caption?: string | null; p_status_text?: string | null; p_is_quiet?: boolean }; Returns: UpdateRow[] };
+      is_username_available: { Args: { p_username: string }; Returns: boolean };
+      update_profile_v2: { Args: { p_username: string; p_display_name: string; p_bio: string }; Returns: ProfileRow[] };
+      get_my_profile_stats: { Args: Record<PropertyKey, never>; Returns: { moments: number; moments_this_month: number; reactions: number }[] };
       get_my_invite: {
         Args: Record<PropertyKey, never>;
         Returns: { code: string; expires_at: string }[];
@@ -326,6 +351,10 @@ export type Database = {
       update_profile: {
         Args: { p_username: string; p_display_name: string };
         Returns: ProfileRow[];
+      };
+      update_avatar: {
+        Args: { p_path: string | null };
+        Returns: undefined;
       };
       remove_connection: {
         Args: { p_connection_id: string };

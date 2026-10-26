@@ -1,14 +1,17 @@
+import { MotionPressable as Pressable } from './MotionPressable';
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '@/src/theme';
+import { spacing } from '@/src/theme';
 import { TextField } from './TextField';
 
 type Props = Omit<ComponentProps<typeof TextField>, 'secureTextEntry'>;
 
 export function PasswordField(props: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const [visible, setVisible] = useState(false);
   return (
     <View style={styles.wrap}>
@@ -26,7 +29,7 @@ export function PasswordField(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   wrap: { position: 'relative', width: '100%' },
   input: { paddingRight: 52 },
   button: { alignItems: 'center', height: 56, justifyContent: 'center', position: 'absolute', right: spacing[8], top: 0, width: 40 },

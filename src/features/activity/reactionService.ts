@@ -7,6 +7,7 @@ const messages: Record<string, string> = {
   AUTH_REQUIRED: 'Sign in again to react.',
   reaction_invalid: 'Choose one of the available reactions.',
   reaction_update_not_visible: 'This moment is no longer available to you.',
+  reaction_own_update: 'You can only react to other people’s moments.',
   terms_required: 'Accept the current Terms of Use before reacting.',
 };
 

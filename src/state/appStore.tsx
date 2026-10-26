@@ -14,6 +14,8 @@ import { reactionService } from '@/src/features/activity/reactionService';
 import { connectionService } from '@/src/features/connections/connectionService';
 import { inviteService } from '@/src/features/connections/inviteService';
 import { profileService } from '@/src/features/profiles/profileService';
+import { widgetService } from '@/src/features/widgets/widgetService';
+import { avatarService } from '@/src/features/profiles/avatarService';
 import { legalService } from '@/src/features/legal/legalService';
 import { safetyService } from '@/src/features/safety/safetyService';
 import { notificationService, type NotificationPermissionState, type NotificationPreferences } from '@/src/features/notifications/notificationService';
@@ -39,6 +41,7 @@ type ServerState = {
   configured: boolean;
   initializing: boolean;
   authLinkProcessing: boolean;
+  recoveryActive: boolean;
   busy: boolean;
   session: Session | null;
   profile: User | null;
@@ -95,6 +98,7 @@ export type AppState = { server: ServerState; local: LocalState };
 
 type Action =
   | { type: 'SERVER_BUSY'; busy: boolean }
+  | { type: 'RECOVERY_ACTIVE'; active: boolean }
   | { type: 'SERVER_ERROR'; error: string | null }
   | { type: 'SERVER_MESSAGE'; message: string | null }
   | { type: 'AUTH_LINK_PROCESSING'; processing: boolean }
@@ -115,6 +119,7 @@ type Action =
   | { type: 'UPDATES_LOADING'; userId: string; append: boolean }
   | { type: 'UPDATES_LOADED'; userId: string; updates: MomentUpdate[]; append: boolean; cursor: UpdateCursor | null; hasMore: boolean }
   | { type: 'UPDATES_ERROR'; userId: string; error: string }
+  | { type: 'SINGLE_UPDATE_LOADED'; userId: string; updateId: string; update: MomentUpdate | null }
   | { type: 'UPDATE_SEEN'; userId: string; updateId: string; seenAt: string }
   | { type: 'ACTIVITY_LOADING'; userId: string; append: boolean }
   | { type: 'ACTIVITY_LOADED'; userId: string; activity: ActivityItem[]; nudges: Nudge[]; reactions: Reaction[]; readAt: string | null; append: boolean; cursor: ActivityCursor | null; hasMore: boolean }
@@ -136,6 +141,8 @@ type Action =
   | { type: 'CLEAR_DRAFT_PHOTO' }
   | { type: 'SET_DRAFT_STATUS'; status: UpdateStatus }
   | { type: 'TOGGLE_DRAFT_RECIPIENT'; userId: UserId }
+  | { type: 'SET_DRAFT_RECIPIENTS'; userIds: UserId[] }
+  | { type: 'SET_DRAFT_CIRCLES'; circleIds: string[] }
   | { type: 'SET_DRAFT_CAPTION'; caption: string }
   | { type: 'SET_DRAFT_QUIET'; isQuiet: boolean }
   | { type: 'PREPARE_NUDGE_RESPONSE'; nudgeId: string; senderId: UserId }
@@ -151,6 +158,7 @@ const initialState: AppState = {
     configured: isSupabaseConfigured,
     initializing: true,
     authLinkProcessing: true,
+    recoveryActive: false,
     busy: false,
     session: null,
     profile: null,
@@ -198,7 +206,7 @@ const initialState: AppState = {
   },
   local: {
     onboardingComplete: false,
-    draft: { photo: null, status: 'studying', recipientIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+    draft: { photo: null, status: 'studying', recipientIds: [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
     preferences: { nudgesEnabled: true, quietUpdatesEnabled: true, recentMomentsDays: 30, privacy: 'selected-people' },
   },
 };
@@ -211,7 +219,7 @@ function alignDraftRecipients(local: LocalState, connections: ConnectionWithPers
     ...local,
     draft: {
       ...local.draft,
-      recipientIds: local.draft.recipientIds.length > 0
+      recipientIds: local.draft.recipientIds.length > 0 || local.draft.circleIds?.length
         ? local.draft.recipientIds.filter((id) => accepted.some(({ person }) => person.id === id))
         : [personId],
     },
@@ -220,6 +228,8 @@ function alignDraftRecipients(local: LocalState, connections: ConnectionWithPers
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'RECOVERY_ACTIVE': return { ...state, server: { ...state.server, recoveryActive: action.active } };
+    case 'SINGLE_UPDATE_LOADED': return state.server.session?.user.id !== action.userId ? state : { ...state, server: { ...state.server, updates: [...state.server.updates.filter(item => item.id !== action.updateId), ...(action.update ? [action.update] : [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)) } };
     case 'SERVER_BUSY': return { ...state, server: { ...state.server, busy: action.busy } };
     case 'SERVER_ERROR': return { ...state, server: { ...state.server, error: action.error, busy: false, initializing: false } };
     case 'SERVER_MESSAGE': return { ...state, server: { ...state.server, message: action.message } };
@@ -405,13 +415,15 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_DRAFT_PHOTO': return { ...state, local: { ...state.local, draft: { ...state.local.draft, photo: action.photo, clientRequestId: Crypto.randomUUID(), sendStage: 'idle', error: null } } };
     case 'CLEAR_DRAFT_PHOTO': return { ...state, local: { ...state.local, draft: { ...state.local.draft, photo: null, clientRequestId: null, sendStage: 'idle', error: null } } };
     case 'SET_DRAFT_STATUS': return { ...state, local: { ...state.local, draft: { ...state.local.draft, status: action.status } } };
+    case 'SET_DRAFT_RECIPIENTS': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [...new Set(action.userIds)], error: null } } };
+    case 'SET_DRAFT_CIRCLES': return { ...state, local: { ...state.local, draft: { ...state.local.draft, circleIds: [...new Set(action.circleIds)], error: null } } };
     case 'TOGGLE_DRAFT_RECIPIENT': {
       const selected = state.local.draft.recipientIds.includes(action.userId);
       return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: selected ? state.local.draft.recipientIds.filter((id) => id !== action.userId) : [...state.local.draft.recipientIds, action.userId] } } };
     }
     case 'SET_DRAFT_CAPTION': return { ...state, local: { ...state.local, draft: { ...state.local.draft, caption: action.caption, error: null } } };
     case 'SET_DRAFT_QUIET': return { ...state, local: { ...state.local, draft: { ...state.local.draft, isQuiet: action.isQuiet } } };
-    case 'PREPARE_NUDGE_RESPONSE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [action.senderId], respondingToNudgeId: action.nudgeId, error: null } } };
+    case 'PREPARE_NUDGE_RESPONSE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [action.senderId], circleIds: [], respondingToNudgeId: action.nudgeId, error: null } } };
     case 'DRAFT_SENDING': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sending: action.sending, sendStage: action.sending ? state.local.draft.sendStage : 'idle', error: null } } };
     case 'DRAFT_STAGE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sendStage: action.stage } } };
     case 'DRAFT_REQUEST_ID': return { ...state, local: { ...state.local, draft: { ...state.local.draft, clientRequestId: action.id } } };
@@ -429,7 +441,7 @@ function reducer(state: AppState, action: Action): AppState {
         },
         local: {
           ...state.local,
-          draft: { photo: null, status: 'studying', recipientIds: defaultRecipient ? [defaultRecipient] : [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+          draft: { photo: null, status: 'studying', recipientIds: defaultRecipient ? [defaultRecipient] : [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
         },
       };
     }
@@ -438,15 +450,18 @@ function reducer(state: AppState, action: Action): AppState {
 }
 
 type AppActions = {
+  refreshUpdate: (id: string) => Promise<void>;
   completeOnboarding: () => void;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (input: SignUpInput) => Promise<'signed-in' | 'confirmation-required' | null>;
   resendSignupConfirmation: () => Promise<boolean>;
   clearConfirmationFlow: () => void;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<boolean>;
   acceptTerms: () => Promise<boolean>;
   refreshTerms: () => Promise<void>;
-  updateProfile: (input: { displayName: string; username: string }) => Promise<boolean>;
+  updateProfile: (input: { displayName: string; username: string; bio: string }) => Promise<boolean>;
+  updateAvatar: (photo: DraftPhoto) => Promise<boolean>;
+  finishRecovery: () => void;
   removeConnection: (connectionId: string) => Promise<boolean>;
   blockUser: (personId: string) => Promise<boolean>;
   deleteAccount: (confirmation: string) => Promise<boolean>;
@@ -464,6 +479,8 @@ type AppActions = {
   clearDraftPhoto: () => void;
   setDraftStatus: (status: UpdateStatus) => void;
   toggleDraftRecipient: (userId: UserId) => void;
+  setDraftRecipients: (userIds: UserId[]) => void;
+  setDraftCircles: (circleIds: string[]) => void;
   setDraftCaption: (caption: string) => void;
   setDraftQuiet: (isQuiet: boolean) => void;
   sendDraft: () => Promise<string | null>;
@@ -475,7 +492,7 @@ type AppActions = {
   sendNudge: (personId: UserId) => Promise<boolean>;
   prepareNudgeResponse: (nudgeId: string, senderId: UserId) => void;
   markNudgeSeen: (nudgeId: string) => Promise<void>;
-  reactToUpdate: (updateId: string, reaction: ReactionType) => Promise<void>;
+  reactToUpdate: (updateId: string, reaction: ReactionType) => Promise<boolean>;
   markUpdateSeen: (updateId: string) => Promise<void>;
   setPreference: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
   enableNotifications: () => Promise<void>;
@@ -597,18 +614,22 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [loadActivity, loadUpdates, registerPushIfGranted]);
 
   const processAuthLink = useCallback(async (url: string) => {
-    if (!authLinkService.isEmailConfirmationUrl(url)) return false;
+    if (!authLinkService.isAuthCallbackUrl(url)) return false;
     dispatch({ type: 'AUTH_LINK_PROCESSING', processing: true });
     const result = await authLinkService.handle(url);
     if (result.kind === 'success') {
+      if (result.recovery) dispatch({ type: 'RECOVERY_ACTIVE', active: true });
       try {
         await hydrateSession(result.session);
-        dispatch({ type: 'CONFIRMATION_SUCCESS' });
+        if (!result.recovery) dispatch({ type: 'CONFIRMATION_SUCCESS' });
       } catch (error) {
         dispatch({ type: 'CONFIRMATION_ERROR', error: readableServiceError(error).message });
       }
     } else if (result.kind === 'error') {
-      dispatch({ type: 'CONFIRMATION_ERROR', error: result.message });
+      if (result.recovery) {
+        dispatch({ type: 'RECOVERY_ACTIVE', active: true });
+        dispatch({ type: 'SERVER_ERROR', error: result.message });
+      } else dispatch({ type: 'CONFIRMATION_ERROR', error: result.message });
     }
     dispatch({ type: 'AUTH_LINK_PROCESSING', processing: false });
     return true;
@@ -626,6 +647,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT' || !session) {
         void realtimeService.stop();
         dispatch({ type: 'SESSION_CLEARED' });
+      } else if (event === 'PASSWORD_RECOVERY') {
+        dispatch({ type: 'RECOVERY_ACTIVE', active: true });
+        setTimeout(() => void hydrateSession(session).catch(() => undefined), 0);
       } else if (event === 'TOKEN_REFRESHED') {
         realtimeService.updateAuth(session.access_token);
         dispatch({ type: 'SESSION_REFRESHED', session });
@@ -636,7 +660,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     });
     const linkSubscription = Linking.addEventListener('url', ({ url }) => {
-      if (active && authLinkService.isEmailConfirmationUrl(url)) void processAuthLink(url);
+      if (active && authLinkService.isAuthCallbackUrl(url)) void processAuthLink(url);
     });
 
     void (async () => {
@@ -645,7 +669,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (active) dispatch({ type: 'VERIFICATION_EMAIL_LOADED', email: pendingEmail });
 
         const initialUrl = await Linking.getInitialURL();
-        if (initialUrl && authLinkService.isEmailConfirmationUrl(initialUrl)) {
+        if (initialUrl && authLinkService.isAuthCallbackUrl(initialUrl)) {
           await processAuthLink(initialUrl);
           return;
         }
@@ -718,6 +742,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const actions = useMemo<AppActions>(() => ({
+    refreshUpdate: async (id) => {
+      const userId = stateRef.current.server.profile?.id;
+      if (!userId) return;
+      try { const update = await updateQueries.getVisibleById(userId, id); dispatch({ type: 'SINGLE_UPDATE_LOADED', userId, updateId: id, update }); }
+      catch (error) { dispatch({ type: 'UPDATES_ERROR', userId, error: readableServiceError(error).message }); }
+    },
     completeOnboarding: () => dispatch({ type: 'COMPLETE_ONBOARDING' }),
     clearServerFeedback: () => {
       dispatch({ type: 'SERVER_ERROR', error: null });
@@ -792,15 +822,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       dispatch({ type: 'SERVER_BUSY', busy: true });
       try {
-        await pushTokenService.disableCurrent();
-        await realtimeService.stop();
+        // Auxiliary cleanup must not prevent the user from ending their session.
+        await Promise.allSettled([pushTokenService.disableCurrent(), realtimeService.stop()]);
         await authService.signOut();
-        await authService.clearPendingVerificationEmail();
+        void widgetService.clear().catch(() => undefined);
+        await authService.clearPendingVerificationEmail().catch(() => undefined);
         dispatch({ type: 'VERIFICATION_EMAIL_LOADED', email: null });
         dispatch({ type: 'CLEAR_CONFIRMATION' });
         dispatch({ type: 'SESSION_CLEARED' });
+        return true;
       }
-      catch (error) { dispatch({ type: 'SERVER_ERROR', error: readableServiceError(error).message }); }
+      catch (error) { dispatch({ type: 'SERVER_ERROR', error: readableServiceError(error).message }); return false; }
     },
     acceptTerms: async () => {
       const status = state.server.termsStatus;
@@ -829,6 +861,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SERVER_ERROR', error: readableServiceError(error).message });
         return false;
       }
+    },
+    updateAvatar: async (photo) => {
+      const profile = stateRef.current.server.profile;
+      if (!profile) return false;
+      dispatch({ type: 'SERVER_BUSY', busy: true });
+      dispatch({ type: 'SERVER_ERROR', error: null });
+      try {
+        await avatarService.upload(profile.id, photo);
+        const updated = await profileService.getById(profile.id);
+        if (stateRef.current.server.session?.user.id !== profile.id) return false;
+        dispatch({ type: 'PROFILE_UPDATED', profile: updated });
+        if (profile.avatarPath) void avatarService.removeOld(profile.avatarPath).catch(() => undefined);
+        return true;
+      } catch (error) {
+        dispatch({ type: 'SERVER_ERROR', error: readableServiceError(error).message });
+        return false;
+      } finally { dispatch({ type: 'SERVER_BUSY', busy: false }); }
     },
     removeConnection: async (connectionId) => {
       const profileId = state.server.profile?.id;
@@ -984,10 +1033,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'INVITE_ERROR', error: inviteService.errorMessage(error) });
       }
     },
+    finishRecovery: () => dispatch({ type: 'RECOVERY_ACTIVE', active: false }),
     setDraftPhoto: (photo) => dispatch({ type: 'SET_DRAFT_PHOTO', photo }),
     clearDraftPhoto: () => dispatch({ type: 'CLEAR_DRAFT_PHOTO' }),
     setDraftStatus: (status) => dispatch({ type: 'SET_DRAFT_STATUS', status }),
     toggleDraftRecipient: (userId) => dispatch({ type: 'TOGGLE_DRAFT_RECIPIENT', userId }),
+    setDraftRecipients: (userIds) => dispatch({ type: 'SET_DRAFT_RECIPIENTS', userIds }),
+    setDraftCircles: (circleIds) => dispatch({ type: 'SET_DRAFT_CIRCLES', circleIds }),
     setDraftCaption: (caption) => dispatch({ type: 'SET_DRAFT_CAPTION', caption }),
     setDraftQuiet: (isQuiet) => dispatch({ type: 'SET_DRAFT_QUIET', isQuiet }),
     sendDraft: async () => {
@@ -1005,8 +1057,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           .map(({ person }) => person.id),
       );
       const recipientIds = draft.recipientIds.filter((id) => acceptedIds.has(id));
-      if (recipientIds.length === 0) {
-        dispatch({ type: 'DRAFT_ERROR', error: 'Choose at least one accepted connection.' });
+      const circleIds = draft.circleIds ?? [];
+      if (recipientIds.length === 0 && circleIds.length === 0) {
+        dispatch({ type: 'DRAFT_ERROR', error: 'Choose at least one close person or approved circle.' });
         return null;
       }
       if (draft.caption.length > 150) {
@@ -1023,6 +1076,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           userId: session.user.id,
           photo: draft.photo,
           recipientIds,
+          circleIds,
           caption: draft.caption,
           statusText: statusDetails[draft.status].label,
           isQuiet: draft.isQuiet,
@@ -1033,6 +1087,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           senderId: row.sender_id,
           sender: profile,
           recipientIds,
+          circleIds,
           photoPath: row.photo_path,
           photoUrl,
           caption: row.caption,
@@ -1047,15 +1102,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'UPDATE_SENT', update });
         void notificationService.sendPush('moment', update.id).catch(() => undefined);
         void offerNotificationPrompt(profile.id);
-        if (responseNudgeId) {
-          try {
-            await nudgeService.markResponded(responseNudgeId, update.id);
-          } catch (error) {
-            dispatch({ type: 'SERVER_ERROR', error: nudgeService.errorMessage(error) });
-          }
-        }
-        await loadUpdates(profile.id);
-        await loadActivity(profile.id, state.server.connections);
+        // The saved update is already in state. Refreshing the feed and activity
+        // must not delay the success screen after the draft has been cleared.
+        void Promise.allSettled([
+          loadUpdates(profile.id),
+          (async () => {
+            if (responseNudgeId) {
+              try {
+                await nudgeService.markResponded(responseNudgeId, update.id);
+              } catch (error) {
+                if (stateRef.current.server.session?.user.id === profile.id) {
+                  dispatch({ type: 'SERVER_ERROR', error: nudgeService.errorMessage(error) });
+                }
+              }
+            }
+            await loadActivity(profile.id, state.server.connections);
+          })(),
+        ]);
         return update.id;
       } catch (error) {
         dispatch({ type: 'DRAFT_ERROR', error: updateService.errorMessage(error) });
@@ -1131,12 +1194,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
     reactToUpdate: async (updateId, reactionType) => {
       const profile = state.server.profile;
-      if (!profile) return;
+      if (!profile) return false;
+      if (stateRef.current.server.updates.find(update => update.id === updateId)?.senderId === profile.id) return false;
       if (!state.server.termsStatus?.acceptedAt) {
         dispatch({ type: 'SERVER_ERROR', error: 'Accept the current Terms of Use before reacting.' });
-        return;
+        return false;
       }
       dispatch({ type: 'REACTION_UPDATING', userId: profile.id, updateId });
+      dispatch({ type: 'SERVER_ERROR', error: null });
       try {
         const row = await reactionService.set(updateId, reactionType);
         void notificationService.sendPush('reaction', row.id).catch(() => undefined);
@@ -1148,9 +1213,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           type: row.reaction,
           createdAt: row.created_at,
         } });
+        return true;
       } catch (error) {
         dispatch({ type: 'REACTION_UPDATING', userId: profile.id, updateId: null });
         dispatch({ type: 'SERVER_ERROR', error: reactionService.errorMessage(error) });
+        return false;
       }
     },
     markUpdateSeen: async (updateId) => {
@@ -1202,7 +1269,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (key === 'enabled' && !value) await pushTokenService.disableCurrent();
         if (key === 'enabled' && value) {
           if (permission === 'granted') await registerPushIfGranted(true);
-          else dispatch({ type: 'NOTIFICATION_PROMPT', visible: true });
+          else if (permission !== 'unavailable') dispatch({ type: 'NOTIFICATION_PROMPT', visible: true });
         }
       } catch (error) {
         dispatch({ type: 'NOTIFICATION_ERROR', error: readableServiceError(error).message });
@@ -1254,6 +1321,8 @@ export function useAppStore() {
 
 export const statusDetails: Record<UpdateStatus, { label: string; symbol: string }> = {
   studying: { label: 'Studying', symbol: '\u{1F4DA}' },
+  chilling: { label: 'Chilling', symbol: '\u2615' },
+  working: { label: 'Working', symbol: '\u{1F4BB}' },
   home: { label: 'Home', symbol: '\u{1F3E0}' },
   eating: { label: 'Eating', symbol: '\u{1F35C}' },
   school: { label: 'School', symbol: '\u{1F393}' },

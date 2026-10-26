@@ -2,8 +2,8 @@ import { authService } from './authService';
 
 export type AuthLinkResult =
   | { kind: 'ignored' }
-  | { kind: 'success'; session: NonNullable<Awaited<ReturnType<typeof authService.setSession>>> }
-  | { kind: 'error'; message: string };
+  | { kind: 'success'; session: NonNullable<Awaited<ReturnType<typeof authService.setSession>>>; recovery: boolean }
+  | { kind: 'error'; message: string; recovery: boolean };
 
 function callbackParameters(url: URL) {
   const parameters = new URLSearchParams(url.search);
@@ -15,18 +15,19 @@ function callbackParameters(url: URL) {
 }
 
 export const authLinkService = {
-  isEmailConfirmationUrl(value: string) {
+  isAuthCallbackUrl(value: string) {
     try {
       const url = new URL(value);
       const route = `${url.hostname}${url.pathname}`.replace(/^\/+|\/+$/g, '');
-      return url.protocol === 'watchudoin:' && route === 'email-confirmed';
+      return url.protocol === 'watchudoin:' && (route === 'email-confirmed' || route === 'reset-password');
     } catch {
       return false;
     }
   },
 
   async handle(value: string): Promise<AuthLinkResult> {
-    if (!this.isEmailConfirmationUrl(value)) return { kind: 'ignored' };
+    if (!this.isAuthCallbackUrl(value)) return { kind: 'ignored' };
+    const recovery = new URL(value).hostname === 'reset-password' || new URL(value).pathname.includes('reset-password');
 
     try {
       const url = new URL(value);
@@ -38,6 +39,7 @@ export const authLinkService = {
         const expired = `${errorCode ?? ''} ${errorDescription ?? ''}`.toLowerCase().includes('expired');
         return {
           kind: 'error',
+          recovery,
           message: expired
             ? 'That confirmation link has expired. Request a new one and try again.'
             : "We couldn't confirm that link. Request a new one and try again.",
@@ -47,15 +49,15 @@ export const authLinkService = {
       const accessToken = parameters.get('access_token');
       const refreshToken = parameters.get('refresh_token');
       if (!accessToken || !refreshToken) {
-        return { kind: 'error', message: 'That confirmation link is incomplete or has already been used.' };
+        return { kind: 'error', recovery, message: 'That link is incomplete or has already been used.' };
       }
 
       const session = await authService.setSession(accessToken, refreshToken);
-      if (!session) return { kind: 'error', message: "We couldn't start your session. Please try the link again." };
+      if (!session) return { kind: 'error', recovery, message: "We couldn't start your session. Please try the link again." };
       await authService.clearPendingVerificationEmail();
-      return { kind: 'success', session };
+      return { kind: 'success', session, recovery };
     } catch {
-      return { kind: 'error', message: "We couldn't confirm that link. Please request a new one." };
+      return { kind: 'error', recovery, message: "We couldn't confirm that link. Please request a new one." };
     }
   },
 };

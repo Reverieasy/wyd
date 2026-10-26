@@ -1,11 +1,13 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, OnboardingStep } from '@/src/components';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 
 export default function PrivateRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { actions } = useAppStore();
   return (
     <OnboardingStep
@@ -27,7 +29,7 @@ export default function PrivateRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   hero: { alignItems: 'center', backgroundColor: colors.background.accentSoft, borderRadius: radii[28], gap: spacing[8], padding: spacing[28] },
   lock: { alignItems: 'center', backgroundColor: colors.background.card, borderRadius: radii.full, height: 84, justifyContent: 'center', marginBottom: spacing[12], width: 84 },
   center: { textAlign: 'center' },

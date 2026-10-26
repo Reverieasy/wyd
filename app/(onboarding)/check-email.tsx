@@ -1,3 +1,4 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -6,9 +7,10 @@ import { StyleSheet, View } from 'react-native';
 import { ActionButton, AppText, Screen, ScreenHeader } from '@/src/components';
 import { useResendCooldown } from '@/src/features/auth/useResendCooldown';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 
 export default function CheckEmailRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { state, actions } = useAppStore();
   const [mailError, setMailError] = useState<string | null>(null);
   const cooldown = useResendCooldown(state.server.resendAvailableAt);
@@ -56,7 +58,7 @@ export default function CheckEmailRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   screen: { justifyContent: 'space-between' },
   center: { alignItems: 'center', gap: spacing[16] },
   icon: { alignItems: 'center', backgroundColor: colors.background.accentSoft, borderRadius: radii.full, height: 104, justifyContent: 'center', marginBottom: spacing[8], width: 104 },

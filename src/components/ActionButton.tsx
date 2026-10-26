@@ -1,7 +1,10 @@
+import { MotionPressable as Pressable } from './MotionPressable';
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, StyleSheet, ViewStyle } from 'react-native';
 
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 import { AppText } from './primitives/AppText';
 
 type Props = {
@@ -23,6 +26,7 @@ export function ActionButton({
   icon,
   style,
 }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const primary = variant === 'primary';
 
   return (
@@ -39,6 +43,7 @@ export function ActionButton({
         style,
       ]}
     >
+      {primary ? <LinearGradient colors={gradients.action} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} /> : null}
       {loading ? (
         <ActivityIndicator color={primary ? colors.text.onAccent : colors.text.primary} />
       ) : (
@@ -53,20 +58,21 @@ export function ActionButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: radii[20],
+    borderRadius: radii[18],
+    overflow: 'hidden',
     flexDirection: 'row',
     gap: spacing[8],
-    minHeight: 52,
+    minHeight: 54,
     justifyContent: 'center',
     paddingHorizontal: spacing[20],
     paddingVertical: spacing[12],
-    width: '100%',
+    alignSelf: 'stretch',
   },
   primary: { backgroundColor: colors.background.accent },
-  secondary: { backgroundColor: colors.background.subtle },
+  secondary: { backgroundColor: colors.background.card, borderWidth: 1, borderColor: colors.border.default },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.45 },
   label: { flexShrink: 1, textAlign: 'center' },

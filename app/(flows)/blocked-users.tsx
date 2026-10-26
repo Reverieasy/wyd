@@ -1,3 +1,4 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
@@ -6,9 +7,10 @@ import { ActionButton, AppText, Avatar, FlowHeader, Screen } from '@/src/compone
 import { safetyService } from '@/src/features/safety/safetyService';
 import { readableServiceError } from '@/src/lib/serviceError';
 import type { BlockedUser } from '@/src/models';
-import { colors, spacing } from '@/src/theme';
+import { spacing } from '@/src/theme';
 
 export default function BlockedUsersRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const [people, setPeople] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function BlockedUsersRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   content: { gap: spacing[16], paddingBottom: spacing[40] },
   empty: { backgroundColor: colors.background.card, borderRadius: 16, gap: spacing[8], padding: spacing[20] },
   person: { alignItems: 'center', flexDirection: 'row', gap: spacing[12], minHeight: 64 },

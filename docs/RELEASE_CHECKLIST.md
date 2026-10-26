@@ -26,7 +26,7 @@
 - [ ] Camera denial, permanent denial, background/foreground, flip, rapid taps, and retake
 - [ ] Photo-library denial and large-photo compression/upload
 - [ ] Moment send, recipient access, seen state, reaction, nudge, and expiry
-- [ ] Connection removal immediately revokes history and signed-photo access
+- [ ] Connection removal immediately revokes history and authenticated photo-download access
 - [ ] Blocking prevents search, requests, nudges, reactions, updates, and pushes
 - [ ] Report person/moment and unblock behavior
 - [ ] Push foreground, background, killed app, deep link, revoked access, and token refresh

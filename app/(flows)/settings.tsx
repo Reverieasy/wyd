@@ -1,0 +1,13 @@
+import { router } from 'expo-router';
+import { Switch, View } from 'react-native';
+import { useTheme } from '@/src/theme/ThemeProvider';
+import { StatusChip } from '@/src/components/StatusChip';
+import { AppText, FlowHeader, Screen, SettingRow } from '@/src/components';
+import { useAppStore } from '@/src/state/appStore';
+
+export default function SettingsRoute() {
+  const { colors, gradients } = useTheme();
+  const { state, actions } = useAppStore();
+  const { mode, setMode } = useTheme();
+  return <Screen scroll><FlowHeader title="Settings" /><View style={{ gap: 12 }}><AppText variant="label14">Appearance</AppText><View style={{ flexDirection: 'row', gap: 8 }}>{(['light', 'dark', 'system'] as const).map(value => <StatusChip key={value} label={value === 'system' ? 'System' : value === 'dark' ? 'Dark' : 'Light'} selected={mode === value} onPress={() => setMode(value)} style={{ flex: 1, minWidth: 0 }} />)}</View></View><SettingRow icon="groups" label="Your circles" onPress={() => router.push('/(flows)/circles')} /><SettingRow icon="widgets" label="Home screen widget" onPress={() => router.push('/(flows)/widget')} /><SettingRow icon="person-outline" label="Account" onPress={() => router.push('/(flows)/account')} /><SettingRow icon="notifications-none" label="Notifications" onPress={() => router.push('/(flows)/notifications')} /><SettingRow icon="shield" label="Privacy & Safety" onPress={() => router.push('/(flows)/privacy-account')} /><SettingRow icon="help-outline" label="Help & Support" onPress={() => router.push('/(flows)/help')} /><SettingRow icon="notifications-off" label="Send quietly by default" value="No push notification for new moments" control={<Switch accessibilityLabel="Send quietly by default" trackColor={{ false: colors.border.default, true: colors.background.accent }} value={state.local.preferences.quietUpdatesEnabled} onValueChange={value => { actions.setPreference('quietUpdatesEnabled', value); actions.setDraftQuiet(value); }} />} /><AppText variant="caption11" tone="secondary">Moments leave active views after 24 hours. Your memory book shows your retained moments until the existing cleanup policy removes them.</AppText></Screen>;
+}

@@ -1,3 +1,4 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -5,7 +6,7 @@ import { ActionButton, AppText, FlowHeader, Screen, StatusChip, TextField } from
 import { safetyService } from '@/src/features/safety/safetyService';
 import { readableServiceError } from '@/src/lib/serviceError';
 import type { SupportCategory } from '@/src/models';
-import { colors, spacing } from '@/src/theme';
+import { spacing } from '@/src/theme';
 
 const categories: { value: SupportCategory; label: string }[] = [
   { value: 'bug', label: 'App issue' }, { value: 'account', label: 'Account' }, { value: 'safety', label: 'Safety' },
@@ -13,6 +14,7 @@ const categories: { value: SupportCategory; label: string }[] = [
 ];
 
 export default function ReportProblemRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const [category, setCategory] = useState<SupportCategory>('bug');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -44,4 +46,4 @@ export default function ReportProblemRoute() {
   );
 }
 
-const styles = StyleSheet.create({ content: { gap: spacing[24], paddingBottom: spacing[40] }, intro: { gap: spacing[8] }, categories: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8] }, sent: { backgroundColor: colors.background.accentSoft, borderRadius: 16, gap: spacing[8], padding: spacing[20] }, error: { color: '#B42318' } });
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({ content: { gap: spacing[24], paddingBottom: spacing[40] }, intro: { gap: spacing[8] }, categories: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[8] }, sent: { backgroundColor: colors.background.accentSoft, borderRadius: 16, gap: spacing[8], padding: spacing[20] }, error: { color: '#B42318' } });

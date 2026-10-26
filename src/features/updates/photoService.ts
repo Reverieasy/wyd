@@ -1,15 +1,17 @@
 import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 
 import { readableServiceError, ServiceError } from '@/src/lib/serviceError';
 import { getSupabase } from '@/src/lib/supabase';
 import type { DraftPhoto } from '@/src/models';
+import { environment } from '@/src/lib/environment';
+import { createMomentPhotoUrl } from './photoAccess';
 
 const BUCKET = 'moment-photos';
 const MAX_BYTES = 6 * 1024 * 1024;
 const MAX_DIMENSION = 1600;
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export type PreparedPhoto = {
   uri: string;
@@ -18,6 +20,17 @@ export type PreparedPhoto = {
   size: number;
   mimeType: 'image/jpeg';
 };
+
+async function readPhotoBytes(uri: string): Promise<ArrayBuffer> {
+  // Expo's native File class is a stub on web and has no validatePath method.
+  // ImageManipulator returns a browser URI there, which fetch can read directly.
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    if (!response.ok) throw new ServiceError('The photo could not be read. Choose it again and retry.', 'photo_read_failed');
+    return response.arrayBuffer();
+  }
+  return new File(uri).arrayBuffer();
+}
 
 async function saveWithinLimit(photo: DraftPhoto): Promise<PreparedPhoto> {
   const context = ImageManipulator.manipulate(photo.uri);
@@ -29,13 +42,13 @@ async function saveWithinLimit(photo: DraftPhoto): Promise<PreparedPhoto> {
   const rendered = await context.renderAsync();
   for (const compress of [0.82, 0.68, 0.52]) {
     const result = await rendered.saveAsync({ compress, format: SaveFormat.JPEG });
-    const file = new File(result.uri);
-    if (file.size <= MAX_BYTES) {
+    const size = Platform.OS === 'web' ? (await readPhotoBytes(result.uri)).byteLength : new File(result.uri).size;
+    if (size <= MAX_BYTES) {
       return {
         uri: result.uri,
         width: result.width,
         height: result.height,
-        size: file.size,
+        size,
         mimeType: 'image/jpeg',
       };
     }
@@ -56,7 +69,7 @@ export const photoService = {
       throw new ServiceError('That photo is larger than 6 MB.', 'photo_too_large');
     }
     const path = this.createPath(userId, objectId);
-    const bytes = await new File(photo.uri).arrayBuffer();
+    const bytes = await readPhotoBytes(photo.uri);
     const { error } = await getSupabase().storage.from(BUCKET).upload(path, bytes, {
       cacheControl: '3600',
       contentType: photo.mimeType,
@@ -64,7 +77,7 @@ export const photoService = {
     });
     if (error && objectId) {
       try {
-        const { error: lookupError } = await getSupabase().storage.from(BUCKET).createSignedUrl(path, 60);
+        const { error: lookupError } = await getSupabase().storage.from(BUCKET).info(path);
         if (!lookupError) return path;
       } catch {
         // Fall through to the original upload error.
@@ -79,9 +92,7 @@ export const photoService = {
     if (error) throw readableServiceError(error);
   },
 
-  async createSignedUrl(path: string) {
-    const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-    if (error) throw readableServiceError(error);
-    return data.signedUrl;
+  getPhotoUrl(path: string) {
+    return createMomentPhotoUrl(environment.supabaseUrl, path);
   },
 };

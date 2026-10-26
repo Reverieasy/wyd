@@ -98,6 +98,7 @@ export const activityService = {
           createdAt: update.created_at,
           read: isRead(update.created_at),
           updateId: update.id,
+          quiet: update.is_quiet,
         }] : [];
       }),
       ...nudges.map((nudge) => ({

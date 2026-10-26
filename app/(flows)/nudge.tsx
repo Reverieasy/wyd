@@ -1,12 +1,14 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, Screen, ScreenHeader } from '@/src/components';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 
 export default function NudgeFlowRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const params = useLocalSearchParams<{ id?: string }>();
   const { state, actions } = useAppStore();
   const requested = useRef(false);
@@ -67,7 +69,7 @@ export default function NudgeFlowRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   screen: { gap: spacing[32] },
   card: { alignItems: 'center', backgroundColor: colors.background.loveSoft, borderRadius: radii[28], gap: spacing[24], marginTop: spacing[40], paddingHorizontal: spacing[28], paddingVertical: spacing[40] },
   centerText: { textAlign: 'center' },

@@ -1,9 +1,10 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, FlowHeader, Screen } from '@/src/components';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, spacing } from '@/src/theme';
+import { spacing } from '@/src/theme';
 
 const sections = [
   ['Private sharing', 'Only share photos you have the right to share. Moments are intended for people you choose, but recipients can still save or show what they receive.'],
@@ -13,6 +14,7 @@ const sections = [
 ];
 
 export default function TermsRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { state, actions } = useAppStore();
   const accepted = Boolean(state.server.termsStatus?.acceptedAt);
@@ -49,7 +51,7 @@ export default function TermsRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   content: { gap: spacing[24], paddingBottom: spacing[40] },
   intro: { gap: spacing[8] },
   section: { gap: spacing[8] },

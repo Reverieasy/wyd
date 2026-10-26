@@ -26,6 +26,17 @@ function authError(error: { message: string; code?: string | null }) {
 }
 
 export const authService = {
+  async requestPasswordReset(email: string) {
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: 'watchudoin://reset-password' });
+    if (error) throw authError(error);
+  },
+
+  async updatePassword(password: string) {
+    if (password.length < 8) throw new ServiceError('Use at least 8 characters.', 'weak_password');
+    const { error } = await getSupabase().auth.updateUser({ password });
+    if (error) throw authError(error);
+  },
+
   async getSession() {
     const { data, error } = await getSupabase().auth.getSession();
     if (error) throw authError(error);
@@ -95,7 +106,7 @@ export const authService = {
   },
 
   async signOut() {
-    const { error } = await getSupabase().auth.signOut();
+    const { error } = await getSupabase().auth.signOut({ scope: 'local' });
     if (error) throw authError(error);
   },
 

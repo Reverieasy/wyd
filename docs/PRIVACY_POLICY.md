@@ -7,7 +7,7 @@ This policy is a product-ready draft and requires legal review plus verified com
 ## Information collected
 
 - Account data: email address, authentication identifiers, username, display name, and profile image path if provided.
-- User content: moment photos, captions, status text, selected recipients, reactions, and nudges.
+- User content: moment photos, captions, comments, status text, selected recipients, reactions, and nudges.
 - Relationship and safety data: connection requests, invite redemption, blocks, reports, and support requests.
 - Device and service data: Expo push tokens, platform/device identifier, notification preferences and delivery status, timestamps, and essential operational logs.
 
@@ -25,11 +25,11 @@ Information may be disclosed when required by law, to protect users or the servi
 
 ## Security and access
 
-Data is encrypted in transit. Moment photos are stored in a private bucket and accessed with short-lived signed URLs. Database row-level security restricts moments and interactions to authorized participants. No system can guarantee absolute security.
+Data is encrypted in transit. Moment photos are stored in a private bucket and downloaded using the signed-in user's authorization. Each download is checked against the current access policy, and the app disables persistent image caching for Moment photos. Database row-level security restricts moments and interactions to authorized participants. No system can guarantee absolute security.
 
 ## Retention
 
-Moments expire from active product views after 24 hours. The production cleanup policy is to remove expired photo files and associated moment records 30 days after expiry. Safety reports may be retained longer where needed to investigate abuse or meet legal obligations. Account deletion removes user-associated data and stored photos as described below.
+Moments expire from active product views after 24 hours. The production cleanup policy is to remove expired photo files, associated moment records, and their comments 30 days after upload. Users can also delete their own comments while they can access the moment. Safety reports may be retained longer where needed to investigate abuse or meet legal obligations. Account deletion removes user-associated data and stored photos as described below.
 
 ## Your controls
 

@@ -1,95 +1,26 @@
+import { MotionPressable as Pressable } from '@/src/components/MotionPressable';
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useRef } from 'react';
-import { SectionList, StyleSheet, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { ActivityRow, AppText, ScreenHeader } from '@/src/components';
+import { ActionButton, ActivityRow, AppText } from '@/src/components';
 import type { ActivityItem } from '@/src/models';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, layout, spacing } from '@/src/theme';
 
-function isToday(date: string) {
-  const value = new Date(date);
-  const now = new Date();
-  return value.getFullYear() === now.getFullYear() && value.getMonth() === now.getMonth() && value.getDate() === now.getDate();
-}
-
+const filters = ['All', 'Moments', 'Reactions', 'Nudges'] as const;
 export default function ActivityRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { state, actions } = useAppStore();
-  const refresh = useRef(actions.refreshActivity);
-  const markRead = useRef(actions.markActivityRead);
-  refresh.current = actions.refreshActivity;
-  markRead.current = actions.markActivityRead;
-
-  useFocusEffect(useCallback(() => {
-    void (async () => {
-      await refresh.current();
-      await markRead.current();
-    })();
-  }, []));
-
-  const today = state.server.activity.filter((item) => isToday(item.createdAt));
-  const earlier = state.server.activity.filter((item) => !isToday(item.createdAt));
-
+  const actionsRef = useRef(actions); actionsRef.current = actions;
+  const [filter, setFilter] = useState<typeof filters[number]>('All');
+  useFocusEffect(useCallback(() => { void (async () => { await actionsRef.current.refreshActivity(); await actionsRef.current.markActivityRead(); })(); }, []));
+  const data = state.server.activity.filter(item => filter === 'All' || (filter === 'Moments' && item.kind === 'moment') || (filter === 'Reactions' && item.kind === 'reaction') || (filter === 'Nudges' && item.kind === 'nudge'));
   const open = (item: ActivityItem) => {
-    if (item.kind === 'nudge' && item.nudgeStatus === 'responded' && item.updateId) {
-      router.push({ pathname: '/(flows)/moment/[id]', params: { id: item.updateId } });
-      return;
-    }
-    if (item.kind === 'nudge' && item.nudgeId) {
-      router.push({ pathname: '/(flows)/nudge', params: { id: item.nudgeId } });
-      return;
-    }
-    if (item.kind === 'connection_request') {
-      router.push('/(onboarding)/connect');
-      return;
-    }
-    if ((item.kind === 'moment' || item.kind === 'reaction') && item.updateId) {
-      router.push({ pathname: '/(flows)/moment/[id]', params: { id: item.updateId } });
-      return;
-    }
-    router.push('/(tabs)/moments');
+    if (item.kind === 'nudge' && item.nudgeStatus !== 'responded' && item.nudgeId) { router.push({ pathname: '/(flows)/nudge', params: { id: item.nudgeId } }); return; }
+    if (item.updateId) { router.push({ pathname: '/(flows)/moment/[id]', params: { id: item.updateId } }); return; }
+    router.push('/(onboarding)/connect');
   };
-
-  const sections = [
-    ...(today.length > 0 ? [{ title: 'TODAY', data: today }] : []),
-    ...(earlier.length > 0 ? [{ title: 'EARLIER', data: earlier }] : []),
-  ];
-
-  return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
-      <SectionList
-        contentContainerStyle={styles.content}
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={styles.rowSeparator} />}
-        renderItem={({ item }) => <ActivityRow item={item} onPress={() => open(item)} />}
-        renderSectionHeader={({ section }) => <AppText variant="caption11" tone="secondary" style={styles.sectionHeader}>{section.title}</AppText>}
-        ListHeaderComponent={<ScreenHeader eyebrow="Activity" title="The little things" subtitle="Nudges, reactions, and your people." style={styles.header} />}
-        ListEmptyComponent={(
-          <View style={styles.empty}>
-            {state.server.activityLoading ? <AppText variant="body14" tone="secondary">Loading activity...</AppText> : <><AppText variant="title20">All quiet for now.</AppText><AppText variant="body14" tone="secondary">Nudges and reactions from your people will show up here.</AppText></>}
-          </View>
-        )}
-        ListFooterComponent={state.server.activityError
-          ? <AppText variant="body14" style={styles.error}>{state.server.activityError}</AppText>
-          : state.server.activityLoadingMore ? <AppText variant="caption11" tone="secondary" style={styles.loadingMore}>Loading older activity...</AppText> : null}
-        onEndReached={() => void actions.loadMoreActivity()}
-        onEndReachedThreshold={0.4}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-      />
-    </SafeAreaView>
-  );
+  return <SafeAreaView edges={['top']} style={styles.safe}><FlatList data={data} keyExtractor={item => item.id} contentContainerStyle={styles.content} renderItem={({ item }) => <ActivityRow item={item} onPress={() => open(item)} />} ItemSeparatorComponent={() => <View style={{ height: 10 }} />} ListHeaderComponent={<View style={styles.header}><AppText style={styles.title}>Activity</AppText><View style={styles.filters}>{filters.map(label => <Pressable key={label} accessibilityRole="button" accessibilityState={{ selected: filter === label }} onPress={() => setFilter(label)} style={[styles.filter, filter === label && styles.selected]}><AppText style={[styles.filterText, filter === label && { color: 'white' }]}>{label}</AppText></Pressable>)}</View></View>} ListEmptyComponent={<AppText tone="secondary" style={{ textAlign: 'center', marginTop: 40 }}>{state.server.activityLoading ? 'Loading activity…' : 'No ' + (filter === 'All' ? 'activity' : filter.toLowerCase()) + ' yet.'}</AppText>} ListFooterComponent={<View style={{ gap: 12, paddingVertical: 20 }}>{state.server.activityError ? <><AppText style={{ color: '#B42318' }}>{state.server.activityError}</AppText><ActionButton label="Try again" variant="secondary" onPress={() => void actions.refreshActivity()} /></> : null}{state.server.activityHasMore ? <ActionButton label={state.server.activityLoadingMore ? 'Loading…' : 'Load older activity'} variant="secondary" loading={state.server.activityLoadingMore} onPress={() => void actions.loadMoreActivity()} /> : null}</View>} onEndReached={() => void actions.loadMoreActivity()} onEndReachedThreshold={0.4} showsVerticalScrollIndicator={false} refreshing={state.server.activityLoading} onRefresh={() => void actions.refreshActivity()} /></SafeAreaView>;
 }
-
-const styles = StyleSheet.create({
-  safe: { backgroundColor: colors.background.app, flex: 1 },
-  content: { flexGrow: 1, paddingBottom: spacing[32], paddingHorizontal: layout.screenPadding, paddingTop: spacing[20] },
-  header: { marginBottom: spacing[24] },
-  sectionHeader: { marginBottom: spacing[12], marginTop: spacing[20] },
-  rowSeparator: { height: spacing[10] },
-  empty: { alignItems: 'center', gap: spacing[8], paddingVertical: spacing[48] },
-  error: { color: '#B42318', marginTop: spacing[16] },
-  loadingMore: { paddingVertical: spacing[16], textAlign: 'center' },
-});
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.background.app }, content: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, flexGrow: 1 }, header: { gap: 16, marginBottom: 20 }, title: { textAlign: 'center', color: colors.text.heading, fontFamily: 'PlusJakartaSans_700Bold', fontSize: 24, lineHeight: 32 }, filters: { flexDirection: 'row', gap: 8 }, filter: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 22, borderColor: colors.border.default, borderWidth: 1, backgroundColor: colors.background.card }, selected: { backgroundColor: gradients.action[0], borderColor: colors.background.accent }, filterText: { fontSize: 11, fontFamily: 'PlusJakartaSans_600SemiBold' } });

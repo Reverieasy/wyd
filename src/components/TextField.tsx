@@ -1,11 +1,13 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ComponentProps } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 
-import { colors, fontFamilies, radii, spacing } from '@/src/theme';
+import { fontFamilies, radii, spacing } from '@/src/theme';
 
 type Props = ComponentProps<typeof TextInput>;
 
 export function TextField({ style, ...props }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <TextInput
       placeholderTextColor={colors.text.secondary}
@@ -15,7 +17,7 @@ export function TextField({ style, ...props }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   input: {
     backgroundColor: colors.background.card,
     borderColor: colors.border.default,
@@ -24,7 +26,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    height: 56,
+    height: 54,
     lineHeight: 20,
     paddingHorizontal: spacing[16],
   },

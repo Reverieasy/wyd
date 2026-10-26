@@ -1,10 +1,12 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, OnboardingStep } from '@/src/components';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 
 export default function NudgeRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <OnboardingStep
       step="2 OF 3"
@@ -21,6 +23,6 @@ export default function NudgeRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   card: { alignItems: 'center', backgroundColor: colors.background.loveSoft, borderRadius: radii[28], gap: spacing[16], padding: spacing[40] },
 });

@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type EventType = "moment" | "nudge" | "reaction" | "connection_request" | "connection_accepted";
 
@@ -12,7 +12,7 @@ type NotificationTarget = {
   preference: "moments" | "nudges" | "reactions" | "connections";
 };
 
-const jsonHeaders = { "Content-Type": "application/json" };
+const jsonHeaders = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,apikey,content-type,x-client-info", "Access-Control-Allow-Methods": "POST,OPTIONS" };
 const eventTypes = new Set<EventType>(["moment", "nudge", "reaction", "connection_request", "connection_accepted"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -25,27 +25,36 @@ function reactionSymbol(value: string) {
 }
 
 async function pairIsAllowed(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   actorId: string,
   recipientId: string,
   requireAcceptedConnection: boolean,
+  momentId?: string,
+  viewerId?: string,
 ) {
-  const { data: block } = await admin
+  const { data: block, error: blockError } = await admin
     .from("blocks")
-    .select("id")
+    .select("blocker_id")
     .or(`and(blocker_id.eq.${actorId},blocked_id.eq.${recipientId}),and(blocker_id.eq.${recipientId},blocked_id.eq.${actorId})`)
     .limit(1)
     .maybeSingle();
+  if (blockError) throw new Error("block_lookup_failed");
   if (block) return false;
   if (!requireAcceptedConnection) return true;
+  if (momentId && viewerId) {
+    const { data, error } = await admin.rpc('can_receive_moment', { p_update_id: momentId, p_user_id: viewerId });
+    if (error) throw new Error('moment_access_lookup_failed');
+    return data === true;
+  }
 
-  const { data: connection } = await admin
+  const { data: connection, error: connectionError } = await admin
     .from("connections")
     .select("id")
     .eq("status", "accepted")
     .or(`and(requester_id.eq.${actorId},addressee_id.eq.${recipientId}),and(requester_id.eq.${recipientId},addressee_id.eq.${actorId})`)
     .limit(1)
     .maybeSingle();
+  if (connectionError) throw new Error("connection_lookup_failed");
   return Boolean(connection);
 }
 
@@ -61,31 +70,35 @@ Deno.serve(async (request: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return response(500, { error: "server_not_configured" });
 
-  const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-  const { data: userData, error: userError } = await callerClient.auth.getUser();
-  if (userError || !userData.user) return response(401, { error: "AUTH_REQUIRED" });
-
-  let payload: { type?: string; eventId?: string };
-  try {
-    payload = await request.json();
-  } catch {
-    return response(400, { error: "invalid_json" });
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  let payload: { type?: string; eventId?: string; jobId?: string };
+  try { payload = await request.json(); } catch { return response(400, { error: "invalid_json" }); }
+  let callerId: string;
+  const workerSecret = request.headers.get("x-worker-secret");
+  if (workerSecret) {
+    const { data: valid, error } = await admin.rpc("validate_worker_secret", { p_secret: workerSecret });
+    if (error || !valid) return response(401, { error: "AUTH_REQUIRED" });
+    const { data: job, error: jobError } = await admin.from("notification_jobs").select("actor_id,event_type,event_id,status").eq("id", payload.jobId ?? "").maybeSingle();
+    if (jobError || !job || job.status !== "processing") return response(403, { error: "job_unavailable" });
+    callerId = job.actor_id; payload.type = job.event_type; payload.eventId = job.event_id;
+  } else {
+    const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data, error } = await callerClient.auth.getUser();
+    if (error || !data.user) return response(401, { error: "AUTH_REQUIRED" });
+    callerId = data.user.id;
   }
-  if (!payload.type || !eventTypes.has(payload.type as EventType) || !payload.eventId || !uuidPattern.test(payload.eventId)) {
-    return response(400, { error: "invalid_event" });
-  }
-
+  if (!payload.type || !eventTypes.has(payload.type as EventType) || !payload.eventId || !uuidPattern.test(payload.eventId)) return response(400, { error: "invalid_event" });
   const type = payload.type as EventType;
   const eventId = payload.eventId;
-  const callerId = userData.user.id;
-  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-
+  try {
   let target: NotificationTarget | null = null;
   if (type === "moment") {
-    const { data: update } = await admin.from("updates").select("id,sender_id,is_quiet").eq("id", eventId).maybeSingle();
+    const { data: update, error: updateError } = await admin.from("updates").select("id,sender_id,is_quiet").eq("id", eventId).maybeSingle();
+    if (updateError) throw new Error("update_lookup_failed");
     if (!update || update.sender_id !== callerId) return response(403, { error: "event_not_owned" });
     if (update.is_quiet) return response(200, { sent: 0, skipped: "quiet_moment" });
-    const { data: recipients } = await admin.from("update_recipients").select("recipient_id").eq("update_id", eventId);
+    const { data: recipients, error: recipientsError } = await admin.from("update_recipients").select("recipient_id").eq("update_id", eventId);
+    if (recipientsError) throw new Error("recipients_lookup_failed");
     target = {
       actorId: callerId,
       recipientIds: (recipients ?? []).map((row) => row.recipient_id),
@@ -95,7 +108,8 @@ Deno.serve(async (request: Request) => {
       preference: "moments",
     };
   } else if (type === "nudge") {
-    const { data: nudge } = await admin.from("nudges").select("id,sender_id,receiver_id").eq("id", eventId).maybeSingle();
+    const { data: nudge, error: nudgeError } = await admin.from("nudges").select("id,sender_id,receiver_id").eq("id", eventId).maybeSingle();
+    if (nudgeError) throw new Error("nudge_lookup_failed");
     if (!nudge || nudge.sender_id !== callerId) return response(403, { error: "event_not_owned" });
     target = {
       actorId: callerId,
@@ -106,9 +120,11 @@ Deno.serve(async (request: Request) => {
       preference: "nudges",
     };
   } else if (type === "reaction") {
-    const { data: reaction } = await admin.from("reactions").select("id,update_id,user_id,reaction").eq("id", eventId).maybeSingle();
+    const { data: reaction, error: reactionError } = await admin.from("reactions").select("id,update_id,user_id,reaction").eq("id", eventId).maybeSingle();
+    if (reactionError) throw new Error("reaction_lookup_failed");
     if (!reaction || reaction.user_id !== callerId) return response(403, { error: "event_not_owned" });
-    const { data: update } = await admin.from("updates").select("sender_id").eq("id", reaction.update_id).maybeSingle();
+    const { data: update, error: updateError } = await admin.from("updates").select("sender_id").eq("id", reaction.update_id).maybeSingle();
+    if (updateError) throw new Error("update_lookup_failed");
     if (!update) return response(404, { error: "event_target_missing" });
     target = {
       actorId: callerId,
@@ -119,7 +135,8 @@ Deno.serve(async (request: Request) => {
       preference: "reactions",
     };
   } else {
-    const { data: connection } = await admin.from("connections").select("id,requester_id,addressee_id,status").eq("id", eventId).maybeSingle();
+    const { data: connection, error: connectionError } = await admin.from("connections").select("id,requester_id,addressee_id,status").eq("id", eventId).maybeSingle();
+    if (connectionError) throw new Error("connection_lookup_failed");
     if (!connection) return response(404, { error: "event_target_missing" });
     if (type === "connection_request") {
       if (connection.requester_id !== callerId || connection.status !== "pending") return response(403, { error: "event_not_owned" });
@@ -148,14 +165,18 @@ Deno.serve(async (request: Request) => {
   const requireAcceptedConnection = type === "moment" || type === "nudge" || type === "reaction";
   const allowed = await Promise.all(target.recipientIds.map(async (recipientId) => ({
     recipientId,
-    allowed: await pairIsAllowed(admin, callerId, recipientId, requireAcceptedConnection),
+    allowed: await pairIsAllowed(admin, callerId, recipientId, requireAcceptedConnection,
+      type === 'moment' || type === 'reaction' ? target.data.updateId : undefined,
+      type === 'reaction' ? callerId : recipientId),
   })));
   target.recipientIds = allowed.filter((item) => item.allowed).map((item) => item.recipientId);
   if (target.recipientIds.length === 0) return response(200, { sent: 0, skipped: "no_recipients" });
 
-  const { data: actor } = await admin.from("profiles").select("display_name").eq("id", target.actorId).maybeSingle();
+  const { data: actor, error: actorError } = await admin.from("profiles").select("display_name").eq("id", target.actorId).maybeSingle();
+    if (actorError) throw new Error("actor_lookup_failed");
   const actorName = actor?.display_name?.trim() || "Someone";
-  const { data: preferences } = await admin.from("notification_preferences").select("user_id,enabled,moments,nudges,reactions,connections").in("user_id", target.recipientIds);
+  const { data: preferences, error: preferenceError } = await admin.from("notification_preferences").select("user_id,enabled,moments,nudges,reactions,connections").in("user_id", target.recipientIds);
+  if (preferenceError) return response(503, { error: "preference_lookup_failed" });
   const preferencesByUser = new Map((preferences ?? []).map((row) => [row.user_id, row]));
   const eligibleRecipients = target.recipientIds.filter((userId) => {
     const preference = preferencesByUser.get(userId);
@@ -168,13 +189,18 @@ Deno.serve(async (request: Request) => {
 
   const claims: { deliveryId: string; tokenId: string; token: string }[] = [];
   for (const token of tokens ?? []) {
-    const { data: delivery, error } = await admin.from("notification_deliveries").insert({
-      event_type: type,
-      event_id: eventId,
-      recipient_id: token.user_id,
-      push_token_id: token.id,
-    }).select("id").maybeSingle();
-    if (!error && delivery) claims.push({ deliveryId: delivery.id, tokenId: token.id, token: token.expo_push_token });
+    const { data: inserted, error: insertError } = await admin.from("notification_deliveries").insert({ event_type: type, event_id: eventId, recipient_id: token.user_id, push_token_id: token.id, attempts: 1, leased_until: new Date(Date.now()+120000).toISOString() }).select("id").maybeSingle();
+    if (!insertError && inserted) { claims.push({ deliveryId: inserted.id, tokenId: token.id, token: token.expo_push_token }); continue; }
+    if (insertError?.code !== "23505") throw new Error("delivery_claim_failed");
+    const { data: existing, error: lookupError } = await admin.from("notification_deliveries").select("id,status,attempts,leased_until").eq("event_type",type).eq("event_id",eventId).eq("push_token_id",token.id).single();
+    if (lookupError) throw new Error("delivery_lookup_failed");
+    if(existing.status==="pending" && Date.parse(existing.leased_until??"1970-01-01")>=Date.now()) throw new Error("delivery_in_progress");
+    if ((existing.status === "failed" || (existing.status === "pending" && Date.parse(existing.leased_until ?? "1970-01-01") < Date.now())) && existing.attempts < 5) {
+      const { data: reclaimed, error } = await admin.from("notification_deliveries").update({ status:"pending", attempts:existing.attempts+1, leased_until:new Date(Date.now()+120000).toISOString() }).eq("id",existing.id).eq("attempts",existing.attempts).eq("status",existing.status).select("id").maybeSingle();
+      if (error) throw new Error("delivery_reclaim_failed");
+      if (reclaimed) claims.push({ deliveryId:reclaimed.id,tokenId:token.id,token:token.expo_push_token });
+    }
+
   }
   if (claims.length === 0) return response(200, { sent: 0, skipped: "no_new_tokens" });
 
@@ -188,28 +214,26 @@ Deno.serve(async (request: Request) => {
   }));
 
   try {
-    const expoResponse = await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: { "Accept": "application/json", "Accept-Encoding": "gzip, deflate", "Content-Type": "application/json" },
-      body: JSON.stringify(messages),
-    });
-    const result = await expoResponse.json();
-    const tickets = Array.isArray(result?.data) ? result.data : [];
-    for (let index = 0; index < claims.length; index += 1) {
-      const claim = claims[index];
-      const ticket = tickets[index];
-      const invalid = ticket?.details?.error === "DeviceNotRegistered";
-      await admin.from("notification_deliveries").update({
-        status: invalid ? "invalid_token" : ticket?.status === "ok" ? "sent" : "failed",
-        expo_ticket_id: ticket?.id ?? null,
-        error: ticket?.message ?? (expoResponse.ok ? null : `expo_http_${expoResponse.status}`),
-      }).eq("id", claim.deliveryId);
-      if (invalid) await admin.from("push_tokens").update({ enabled: false }).eq("id", claim.tokenId);
+    const tickets: { status?: string; id?: string; message?: string; details?: { error?: string } }[] = [];
+    for (let start = 0; start < messages.length; start += 100) {
+      const expoResponse = await fetch("https://exp.host/--/api/v2/push/send", { method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(messages.slice(start,start+100)),signal:AbortSignal.timeout(15000) });
+      const result = await expoResponse.json();
+      if (!expoResponse.ok || !Array.isArray(result?.data)) throw new Error("expo_send_failed");
+      tickets.push(...result.data);
+      for (let offset=0;offset<Math.min(100,claims.length-start);offset++) {
+        const claim=claims[start+offset],ticket=result.data[offset];
+        const invalid=ticket?.details?.error==="DeviceNotRegistered";
+        const { error } = await admin.from("notification_deliveries").update({status:invalid?"invalid_token":ticket?.status==="ok"?"sent":"failed",expo_ticket_id:ticket?.id??null,leased_until:null,error:ticket?.message??(ticket?null:"missing_ticket")}).eq("id",claim.deliveryId);
+        if(error) throw new Error("delivery_status_failed");
+        if(invalid) { const {error}=await admin.from("push_tokens").update({enabled:false}).eq("id",claim.tokenId);if(error)throw new Error("token_disable_failed"); }
+      }
     }
+    if (tickets.some(ticket => ticket.status !== "ok" && ticket.details?.error !== "DeviceNotRegistered") || tickets.length !== claims.length) return response(502, { error: "delivery_failed" });
     return response(200, { sent: tickets.filter((ticket: { status?: string }) => ticket?.status === "ok").length, attempted: claims.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "push_request_failed";
-    await admin.from("notification_deliveries").update({ status: "failed", error: message }).in("id", claims.map((claim) => claim.deliveryId));
+    await admin.from("notification_deliveries").update({ status: "failed", error: message }).in("id", claims.map((claim) => claim.deliveryId)).eq("status","pending");
     return response(502, { error: "push_request_failed" });
   }
+  } catch { return response(503, { error: "delivery_lookup_failed" }); }
 });

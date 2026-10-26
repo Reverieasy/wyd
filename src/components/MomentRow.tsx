@@ -1,15 +1,17 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { MomentUpdate, User } from '@/src/models';
 import { clockTime } from '@/src/state/appStore';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 import { MomentPhoto } from './MomentPhoto';
 import { AppText } from './primitives/AppText';
 
 type Props = { update: MomentUpdate; author: User; compact?: boolean; footer?: ReactNode; showSeen?: boolean; onPhotoError?: () => void };
 
 export function MomentRow({ update, author, compact = false, footer, showSeen = false, onPhotoError }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <View style={[styles.card, compact && styles.compact]}>
       <View style={styles.row}>
@@ -29,7 +31,7 @@ export function MomentRow({ update, author, compact = false, footer, showSeen = 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   card: {
     backgroundColor: colors.background.card,
     borderRadius: radii[20],

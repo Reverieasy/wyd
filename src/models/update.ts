@@ -1,7 +1,7 @@
 import type { User, UserId } from './user';
 import type { Reaction } from './reaction';
 
-export type UpdateStatus = 'studying' | 'home' | 'eating' | 'school' | 'morning';
+export type UpdateStatus = 'studying' | 'chilling' | 'working' | 'home' | 'eating' | 'school' | 'morning';
 export type PhotoPalette = 'accent' | 'love' | 'neutral';
 export type PhotoSource = 'camera' | 'library';
 
@@ -24,6 +24,7 @@ export type MomentUpdate = {
   senderId: UserId;
   sender: User;
   recipientIds: UserId[];
+  circleIds?: string[];
   photoPath: string;
   photoUrl: string | null;
   statusText: string | null;
@@ -39,6 +40,7 @@ export type UpdateDraft = {
   photo: DraftPhoto | null;
   status: UpdateStatus;
   recipientIds: UserId[];
+  circleIds: string[];
   caption: string;
   isQuiet: boolean;
   sending: boolean;

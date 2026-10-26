@@ -3,6 +3,7 @@ export type UserId = string;
 export type User = {
   id: UserId;
   displayName: string;
+  bio: string;
   handle: string;
   avatarPath: string | null;
   avatarUrl: string | null;

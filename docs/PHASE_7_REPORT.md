@@ -58,7 +58,7 @@ Current Terms version is `2026-09-25`; acceptance time/version is stored server-
 
 ## 9. Storage cleanup
 
-Moments expire from active views after 24 hours. The deployed cleanup worker deletes photo objects and database rows 30 days after `expires_at`, in batches of 100. It is intentionally inactive until `CLEANUP_CRON_SECRET` and a daily Supabase Cron request are configured. Account deletion separately removes all owner-folder objects immediately.
+Moments expire from active views after 24 hours. Updated October 26, 2026: the deployed cleanup worker deletes moment photo objects and database rows 30 days after upload (`created_at`), including orphaned moment uploads. The authenticated `wyd-moment-retention` Cron job is active every 15 minutes. Account deletion separately removes all owner-folder objects immediately. See [Circles and retention](CIRCLES_AND_RETENTION.md) for the current behavior and validation.
 
 ## 10. Security audit
 
@@ -101,7 +101,7 @@ Transactional database simulations for accepted A/B, unrelated C, removal, block
 
 - Publish the deletion resource and Privacy Policy at stable HTTPS URLs with verified support/privacy contacts.
 - Link the EAS project and set `EXPO_PUBLIC_EAS_PROJECT_ID`; authenticate EAS CLI.
-- Configure cleanup secret/Cron and enable leaked-password protection.
+- Enable leaked-password protection. Photo cleanup authentication and Cron are configured and active.
 - Complete legal review, minimum-age decision, content rating, Data Safety form, moderation ownership, and store listing.
 - Resolve or formally accept the 14 moderate transitive npm advisories; npm currently offers only forced breaking Expo downgrades.
 - Google Play currently requires new apps/updates to target API 36 from August 31, 2026; this SDK targets 36, but confirm again at submission.

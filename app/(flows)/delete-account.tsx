@@ -1,12 +1,14 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, FlowHeader, Screen, TextField } from '@/src/components';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, spacing } from '@/src/theme';
+import { spacing } from '@/src/theme';
 
 export default function DeleteAccountRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { state, actions } = useAppStore();
   const [confirmation, setConfirmation] = useState('');
   const ready = confirmation === 'DELETE' && !state.server.busy;
@@ -32,7 +34,7 @@ export default function DeleteAccountRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   content: { gap: spacing[24], paddingBottom: spacing[40] },
   warning: { backgroundColor: colors.background.loveSoft, borderRadius: 16, gap: spacing[8], padding: spacing[20] },
   field: { gap: spacing[8] },

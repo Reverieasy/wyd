@@ -53,6 +53,9 @@ function projectId() {
 }
 
 export const notificationService = {
+  usesSystemBanners() {
+    return Platform.OS !== 'web' && Device.isDevice && Boolean(projectId()) && getNotificationsModule() !== null;
+  },
   async configureChannel() {
     if (Platform.OS !== 'android') return;
     const Notifications = getNotificationsModule();

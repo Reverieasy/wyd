@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { MotionPressable as Pressable } from './MotionPressable';
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
+import { StyleSheet, ViewStyle } from 'react-native';
 
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 import { AppText } from './primitives/AppText';
 
 type Props = {
@@ -11,13 +13,14 @@ type Props = {
   style?: ViewStyle;
 };
 
-const toneColors = {
+
+export function StatusChip({ label, tone = 'accent', selected, onPress, style }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
+  const toneColors = {
   accent: colors.background.accentSoft,
   neutral: colors.background.subtle,
   love: colors.background.loveSoft,
 };
-
-export function StatusChip({ label, tone = 'accent', selected, onPress, style }: Props) {
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -27,26 +30,28 @@ export function StatusChip({ label, tone = 'accent', selected, onPress, style }:
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: toneColors[tone] },
-        selected && styles.selected,
         pressed && styles.pressed,
         style,
+        selected && styles.selected,
       ]}
     >
-      <AppText variant="label12">{label}</AppText>
+      <AppText variant="label12" style={selected ? { color: colors.text.onAccent } : undefined}>{label}</AppText>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   base: {
     alignItems: 'center',
     borderRadius: radii.full,
     minHeight: 44,
     justifyContent: 'center',
-    minWidth: 108,
+    minWidth: 90,
+    borderColor: colors.border.default,
+    borderWidth: 1,
     paddingHorizontal: spacing[12],
     paddingVertical: spacing[8],
   },
-  selected: { borderColor: colors.border.selected, borderWidth: 2 },
+  selected: { borderColor: colors.border.selected, backgroundColor: gradients.action[0] },
   pressed: { opacity: 0.8 },
 });

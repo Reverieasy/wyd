@@ -1,23 +1,24 @@
 export const colors = {
   background: {
-    app: '#FCFAF8',
+    app: '#FFFDFC',
     card: '#FFFFFF',
-    subtle: '#F7F3F0',
-    accent: '#7357D9',
-    accentSoft: '#EEE9FF',
+    subtle: '#FAF8F7',
+    accent: '#6C2CF5',
+    accentSoft: '#F3E9FF',
     loveSoft: '#FFE8EE',
-    camera: '#141417',
-    cameraPreview: '#26262B',
+    camera: '#121214',
+    cameraPreview: '#2B2B30',
   },
   text: {
-    primary: '#231F20',
-    secondary: '#766E71',
+    primary: '#241E2C',
+    secondary: '#8A828C',
+    heading: '#3C236D',
     onAccent: '#FFFFFF',
     onCameraMuted: '#B6B0B2',
   },
   border: {
-    default: '#E8E1E3',
-    selected: '#7357D9',
+    default: '#E9E3E7',
+    selected: '#6C2CF5',
   },
   brand: {
     ink: '#1C1429',
@@ -25,4 +26,15 @@ export const colors = {
     dark: '#17131F',
     light: '#FFF8F1',
   },
+} as const;
+
+export const gradients = {
+  action: ['#6C2CF5', '#A08B9C'],
+  title: ['#5C25E0', '#89797D'],
+  soft: ['#F3E9FF', '#EFE5F4'],
+} as const;
+
+export const cardShadow = {
+  shadowColor: '#1F1429', shadowOffset: { width: 0, height: 7 },
+  shadowOpacity: 0.08, shadowRadius: 18, elevation: 3,
 } as const;

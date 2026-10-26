@@ -1,7 +1,8 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 import { ActionButton } from './ActionButton';
 import { AppText } from './primitives/AppText';
 import { Screen } from './Screen';
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export function OnboardingStep({ step, title, message, hero, onContinue }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <Screen contentStyle={styles.screen}>
       <AppText variant="caption11" tone="secondary">{step}</AppText>
@@ -29,6 +31,7 @@ export function OnboardingStep({ step, title, message, hero, onContinue }: Props
 }
 
 export function OnboardingIllustration({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'love' | 'accent' }) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const backgrounds = {
     neutral: colors.background.subtle,
     love: colors.background.loveSoft,
@@ -41,7 +44,7 @@ export function OnboardingIllustration({ label, tone = 'neutral' }: { label: str
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   screen: { justifyContent: 'space-between' },
   hero: { flex: 1, justifyContent: 'center', maxHeight: 390 },
   copy: { gap: spacing[12] },

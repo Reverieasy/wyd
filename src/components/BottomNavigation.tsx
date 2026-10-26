@@ -1,70 +1,38 @@
+import { MotionPressable as Pressable } from './MotionPressable';
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
+import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { colors, layout, radii, spacing } from '@/src/theme';
+import { AppText } from './primitives/AppText';
 
 export type MainTab = 'people' | 'activity' | 'camera' | 'moments' | 'you';
-
-type Props = {
-  activeRoute: MainTab;
-  onNavigate: (route: MainTab) => void;
-  hasUnreadActivity?: boolean;
-};
-
-const items: { key: MainTab; label: string; icon: ComponentProps<typeof MaterialIcons>['name'] }[] = [
-  { key: 'people', label: 'Home', icon: 'home' },
-  { key: 'activity', label: 'Activity', icon: 'notifications-none' },
-  { key: 'camera', label: 'Add moment', icon: 'add' },
-  { key: 'moments', label: 'Moments', icon: 'history' },
-  { key: 'you', label: 'You', icon: 'person-outline' },
+export const BOTTOM_MENU_HEIGHT = 66;
+const items: { key: MainTab; label: string; icon: ComponentProps<typeof Feather>['name'] }[] = [
+  { key: 'people', label: 'Home', icon: 'home' }, { key: 'activity', label: 'Activity', icon: 'bell' },
+  { key: 'camera', label: 'Camera', icon: 'camera' }, { key: 'moments', label: 'Moments', icon: 'image' }, { key: 'you', label: 'You', icon: 'user' },
 ];
-
-export function BottomNavigation({ activeRoute, onNavigate, hasUnreadActivity = false }: Props) {
+export function BottomNavigation({ activeRoute, onNavigate, hasUnreadActivity = false }: { activeRoute: MainTab; onNavigate: (route: MainTab) => void; hasUnreadActivity?: boolean }) {
+  const { colors, styles } = useThemeStyles(makeStyles);
   const insets = useSafeAreaInsets();
-  return (
-    <View style={[styles.bar, { height: layout.bottomNavigationHeight + insets.bottom, paddingBottom: insets.bottom }]} pointerEvents="box-none">
-      <View style={styles.pill} />
-      {items.map((item) => {
-        const active = activeRoute === item.key;
-        const camera = item.key === 'camera';
-
-        return (
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityLabel={item.label}
-            accessibilityState={{ selected: active }}
-            key={item.key}
-            onPress={() => onNavigate(item.key)}
-            style={({ pressed }) => [styles.item, camera && styles.cameraItem, pressed && styles.pressed]}
-          >
-            <View style={camera ? styles.cameraButton : styles.iconWrap}>
-              <MaterialIcons color={camera ? colors.text.onAccent : active ? colors.background.accent : colors.text.primary} name={item.icon} size={camera ? 30 : 23} />
-              {item.key === 'activity' && hasUnreadActivity ? <View style={styles.badge} /> : null}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+  return <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={styles.bar}>{items.map(({ key, label, icon }) => {
+      const active = activeRoute === key;
+      const add = key === 'camera';
+      const color = active ? colors.background.accent : colors.text.secondary;
+      return <Pressable key={key} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} onPress={() => onNavigate(key)} style={({ pressed }) => [styles.item, active && !add && styles.activeItem, add && styles.add, pressed && { opacity: 0.7 }]}>
+        {add ? <View pointerEvents="none" style={styles.addButton}><Feather color="white" name="camera" size={27} /></View> : <>{key === 'people' && active ? <MaterialIcons color={color} name="home" size={26} /> : <Feather color={color} name={icon} size={23} />}<AppText variant="caption11" style={[styles.label, { color }]}>{label}</AppText>{active ? <View style={[styles.activeDot, { backgroundColor: color }]} /> : null}{key === 'activity' && hasUnreadActivity ? <View style={styles.badge} /> : null}</>}
+      </Pressable>;
+    })}</View>
+  </View>;
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    height: layout.bottomNavigationHeight,
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[40],
-    position: 'relative',
-  },
-  pill: { backgroundColor: '#FAF9FA', borderColor: '#ECE8EA', borderRadius: 27, borderWidth: 1, elevation: 5, height: 54, left: spacing[20], position: 'absolute', right: spacing[20], shadowColor: '#000000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 11, top: 9 },
-  item: { alignItems: 'center', height: 44, justifyContent: 'center', marginTop: spacing[4], width: 40 },
-  cameraItem: { height: 52, marginTop: -spacing[10], width: 52 },
-  iconWrap: { alignItems: 'center', height: 40, justifyContent: 'center', position: 'relative', width: 40 },
-  cameraButton: { alignItems: 'center', backgroundColor: colors.background.accent, borderRadius: radii.full, elevation: 8, height: 52, justifyContent: 'center', shadowColor: colors.background.accent, shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.34, shadowRadius: 9, width: 52 },
-  badge: { backgroundColor: colors.background.accent, borderColor: '#FAF9FA', borderRadius: radii.full, borderWidth: 2, height: 10, position: 'absolute', right: 5, top: 5, width: 10 },
-  pressed: { opacity: 0.7 },
+const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
+  wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, paddingHorizontal: 16, backgroundColor: 'transparent' },
+  bar: { alignSelf: 'center', width: '100%', maxWidth: 568, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', height: BOTTOM_MENU_HEIGHT, paddingHorizontal: 6, backgroundColor: colors.background.card, borderWidth: 1, borderColor: isDark ? colors.border.default : '#EEEAF7', borderRadius: 30, boxShadow: '0px 5px 22px rgba(38, 20, 75, 0.06)' },
+  item: { alignItems: 'center', justifyContent: 'center', minHeight: 54, flex: 1, gap: 2, paddingBottom: 4, borderRadius: 25 }, activeItem: { backgroundColor: isDark ? colors.background.accentSoft : '#F7F0FF' },
+  label: { fontSize: 10, lineHeight: 14, fontFamily: 'PlusJakartaSans_500Medium' }, add: { height: 60, paddingBottom: 0 },
+  addButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#6C24FF', borderWidth: 2, borderColor: isDark ? colors.border.default : '#EFE6FF', alignItems: 'center', justifyContent: 'center', boxShadow: '0px 3px 12px rgba(108, 36, 255, 0.18)' },
+  activeDot: { position: 'absolute', bottom: 2, width: 4, height: 4, borderRadius: 2 },
+  badge: { position: 'absolute', right: 16, top: 5, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.background.accent },
 });

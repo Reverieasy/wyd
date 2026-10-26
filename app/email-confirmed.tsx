@@ -1,12 +1,14 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, Screen, ScreenHeader } from '@/src/components';
 import { useResendCooldown } from '@/src/features/auth/useResendCooldown';
 import { useAppStore } from '@/src/state/appStore';
-import { colors, radii, spacing } from '@/src/theme';
+import { radii, spacing } from '@/src/theme';
 
 export default function EmailConfirmedRoute() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { state, actions } = useAppStore();
   const success = state.server.confirmationStatus === 'success';
   const cooldown = useResendCooldown(state.server.resendAvailableAt);
@@ -55,7 +57,7 @@ export default function EmailConfirmedRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   screen: { justifyContent: 'space-between' },
   center: { alignItems: 'center', gap: spacing[16] },
   icon: { alignItems: 'center', backgroundColor: colors.background.accentSoft, borderRadius: radii.full, height: 116, justifyContent: 'center', marginBottom: spacing[16], width: 116 },

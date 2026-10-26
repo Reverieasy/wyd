@@ -1,7 +1,8 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ComponentProps } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
-import { colors, typography, type TypographyVariant } from '@/src/theme';
+import { typography, type TypographyVariant } from '@/src/theme';
 
 type Props = ComponentProps<typeof Text> & {
   variant?: TypographyVariant;
@@ -14,6 +15,7 @@ export function AppText({
   style,
   ...props
 }: Props) {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
   return (
     <Text
       {...props}
@@ -22,6 +24,6 @@ export function AppText({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   base: { letterSpacing: 0 },
 });

@@ -9,7 +9,7 @@ Complete this worksheet against the final production build and legal policy befo
 | Email address | Yes | Account management and authentication | No | Yes |
 | User IDs/profile | Yes | App functionality and account management | No | Yes |
 | Photos | Yes | User-selected private sharing | No | Yes |
-| Other user-generated content | Yes | Captions, status, reactions, nudges, reports | No | Yes |
+| Other user-generated content | Yes | Captions, comments, status, reactions, nudges, reports | No | Yes |
 | App interactions | Yes | Connections, invite flow, notification delivery | No | Yes |
 | Device or other IDs | Yes | Push token registration and delivery | No | Yes |
 | Crash/diagnostic data | Verify release build | Essential operations only; no analytics SDK currently installed | N/A | Verify |
@@ -25,7 +25,7 @@ Supabase and Expo are service providers processing data to deliver core app func
 - Data is encrypted in transit.
 - Users can request deletion in-app.
 - Publish a working web deletion URL before submission.
-- Private photos use authenticated storage policies and short-lived signed URLs.
+- Private photos use authenticated downloads and storage policies that check the current user's access.
 - Reports and blocks support the user-generated-content safety policy.
 
 ## Submission checks

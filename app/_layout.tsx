@@ -1,21 +1,29 @@
+import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { router, Stack, useRootNavigationState, useSegments } from 'expo-router';
+import { router, Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, DefaultTheme, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { NotificationPermissionPrompt } from '@/src/components/NotificationPermissionPrompt';
+import { ForegroundNotificationBanner } from '@/src/components/ForegroundNotificationBanner';
+import { MotionProvider } from '@/src/components/MotionProvider';
+import { WidgetCoordinator } from '@/src/features/widgets/WidgetCoordinator';
+import { CircleInviteCoordinator } from '@/src/features/circles/CircleInviteCoordinator';
 import { notificationService } from '@/src/features/notifications/notificationService';
 import { navigateForNotification } from '@/src/features/notifications/notificationRouter';
 import type { AppNotificationData } from '@/src/features/notifications/notificationTypes';
 import { AppStoreProvider, useAppStore } from '@/src/state/appStore';
-import { colors } from '@/src/theme';
+
+import { ThemeProvider, useTheme } from '@/src/theme/ThemeProvider';
+import { setWindowBackground } from '@/src/theme/windowBackground';
 
 type PendingNotification = { identifier: string; data: AppNotificationData };
 
@@ -82,13 +90,23 @@ function NotificationCoordinator() {
 }
 
 function AppNavigator() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
+  const { isDark } = useTheme();
   const { state } = useAppStore();
+  const navigationTheme = useMemo(() => {
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return { ...base, colors: { ...base.colors, background: colors.background.app, card: colors.background.card, text: colors.text.primary, border: colors.border.default, primary: colors.background.accent } };
+  }, [isDark, colors]);
   const segments = useSegments();
   const navigationState = useRootNavigationState();
 
   useEffect(() => {
     if (state.server.initializing || state.server.authLinkProcessing || !navigationState?.key) return;
     const root = segments[0];
+    if (state.server.recoveryActive) {
+      if (root !== 'reset-password') router.replace('/reset-password');
+      return;
+    }
     const route = (segments as string[])[1];
     const onConfirmationScreen = root === 'email-confirmed';
     if (state.server.confirmationStatus !== 'idle') {
@@ -100,19 +118,25 @@ function AppNavigator() {
       return;
     }
     if (!state.server.session) {
+      if (root === 'join-circle') return;
+      if ((root === '(flows)' && (route === 'terms' || route === 'privacy-policy')) || root === 'reset-password') return;
       if (root !== '(onboarding)') router.replace('/(onboarding)/welcome');
       return;
     }
     if (!state.server.profile) return;
-    if (root === '(onboarding)' && route !== 'connect') {
+    if (root === '(onboarding)' && route !== 'connect' && route !== 'forgot-password') {
       router.replace('/(tabs)/people');
     }
-  }, [navigationState?.key, segments, state.server.authLinkProcessing, state.server.confirmationStatus, state.server.initializing, state.server.profile, state.server.session]);
+  }, [navigationState?.key, segments, state.server.authLinkProcessing, state.server.confirmationStatus, state.server.initializing, state.server.profile, state.server.session, state.server.recoveryActive]);
 
   const loading = state.server.initializing || state.server.authLinkProcessing;
   return (
-    <>
-      <Stack screenOptions={{ contentStyle: styles.content, headerShown: false }} />
+    <NavigationThemeProvider value={navigationTheme}><View style={styles.shell}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ contentStyle: styles.content, headerShown: false, animation: 'none' }} />
+      {!loading ? <ForegroundNotificationBanner /> : null}
+      {!loading ? <WidgetCoordinator /> : null}
+      {!loading ? <CircleInviteCoordinator /> : null}
       {loading ? (
         <View style={[StyleSheet.absoluteFill, styles.loading]}>
           <ActivityIndicator color={colors.background.accent} />
@@ -120,16 +144,21 @@ function AppNavigator() {
       ) : (
         <NotificationCoordinator />
       )}
-    </>
+    </View></NavigationThemeProvider>
   );
 }
 
-export default function RootLayout() {
+function RootContent() {
+  const { colors, gradients, styles } = useThemeStyles(makeStyles);
+  useLayoutEffect(() => { void setWindowBackground(colors.background.app).catch(() => undefined); }, [colors.background.app]);
   const [fontsLoaded] = useFonts({
+    Nunito_900Black: require('@expo-google-fonts/nunito/900Black/Nunito_900Black.ttf'),
+    Nunito_800ExtraBold: require('@expo-google-fonts/nunito/800ExtraBold/Nunito_800ExtraBold.ttf'),
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   if (!fontsLoaded) {
@@ -142,13 +171,17 @@ export default function RootLayout() {
 
   return (
     <AppStoreProvider>
-      <StatusBar style="dark" />
       <AppNavigator />
     </AppStoreProvider>
   );
 }
 
-const styles = StyleSheet.create({
+export default function RootLayout() {
+  return <ThemeProvider><MotionProvider><RootContent /></MotionProvider></ThemeProvider>;
+}
+
+const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
+  shell: { flex: 1, backgroundColor: colors.background.app },
   content: { backgroundColor: colors.background.app },
   loading: { alignItems: 'center', backgroundColor: colors.background.app, flex: 1, justifyContent: 'center' },
 });
