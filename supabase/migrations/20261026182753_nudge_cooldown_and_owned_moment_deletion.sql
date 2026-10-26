@@ -77,4 +77,3 @@ $$;
 revoke all on function public.delete_own_moment(uuid) from public,anon;
 grant execute on function public.delete_own_moment(uuid) to authenticated;
 notify pgrst,'reload schema';
-

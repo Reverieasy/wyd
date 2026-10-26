@@ -13,5 +13,12 @@ Package `com.watchudoin.app`, version code 5.
 - TypeScript and 120 automated tests passed, including camera torch lifecycle, compact nudge gestures, deletion ownership, retry, account switching, and confirmation behavior.
 - Live rollback SQL checks passed for the exact 10-second boundary, owner-only deletion, Storage operation restrictions, and comment/recipient cleanup. Existing circles privacy checks also passed.
 - Supabase advisors found no new security findings. Existing advisories remain unchanged.
+- Android, iOS, and web source exports passed. Dark fixture screenshots verified the compact Close People rows and own-moment delete control.
+- Release build succeeded in 11 minutes 23 seconds. APK signature verification passed using the same preview certificate as 1.0.3.
+- APK embedded configuration confirms version 1.0.4, version code 5, the linked Expo project, and Android push configuration.
+- Source secret scan passed; `.env` and `.push/` remain ignored.
+- Installed over 1.0.3 on the isolated Android 15 emulator. Launch returned Status ok in 3.4 seconds, and the dark Get started screen rendered correctly. Firebase initialized successfully. No app startup crash was observed; separate Google Play services errors occurred in the emulator.
 
-Build artifact and installation verification will be recorded after the release build completes. Physical rear LED behavior and background notification delivery still require a phone check.
+Physical rear LED behavior and background notification delivery still require a phone check.
+
+Artifact: `dist/wyd-1.0.4-preview.apk` (85,137,091 bytes), arm64-v8a and x86_64. SHA-256: `14D9CF461243A07AAC970F86D6A283FE2321EB1F26234FE1A0546EF6B5CC55DD`.
