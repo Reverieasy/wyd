@@ -1,9 +1,7 @@
 # App icon
 
-Asset: [app-icon-white.png](../assets/app-icon-white.png), an opaque square PNG used for the app icon, Android adaptive foreground, and web favicon. Android's adaptive background is white.
+Asset: [app-icon-safe.png](../assets/app-icon-safe.png), an opaque square PNG used for the app icon, Android adaptive foreground, and web favicon. Android's adaptive background is white.
 
-The asset was produced with the image generation editing tool using [the existing Wyd logo](../assets/figma/wyd-logo.png) as its reference.
+The asset was edited with the image generation tool using [the previous icon](../assets/app-icon-white.png) as its reference. Prompt: preserve the purple W silhouette, gradients, and highlights, reduce and center it on white with generous padding, and keep the whole logo inside the Android adaptive icon safe area. Add no text or outer tile.
 
-Prompt: preserve the existing purple W silhouette and gradients, center it on a square pure white opaque background, and add no text, border, or rounded outer tile.
-
-The native launcher icon will update with the next authorized native build. No APK was built for this change.
+A pixel check places all purple pixels within a radius of 31.7% of the canvas width, inside the circular safe area of one third. The smaller logo is included in Android preview version 1.0.2.

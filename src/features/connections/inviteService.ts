@@ -70,8 +70,8 @@ export const inviteService = {
 
   async shareInvite(invite: ConnectionInvite) {
     await Share.share({
-      title: 'Join me on watchu doin?',
-      message: `Join me on watchu doin? My invite code is ${invite.code}.`,
+      title: 'Join me on watchudoin?',
+      message: `Join me on watchudoin? My invite code is ${invite.code}.`,
     });
   },
 

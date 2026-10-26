@@ -55,6 +55,9 @@ begin
   assert public.add_moment_comment(moment,'Hello crew',comment_id)=comment_id,'Owner must be able to comment';
   assert public.add_moment_comment(moment,'Hello crew',comment_id)=comment_id,'Comment retries must be idempotent';
   assert (select count(*)=1 from public.list_moment_comments(moment)),'A retry must not duplicate a comment';
+  execute 'reset role';
+  assert (select count(*)=0 from public.notification_jobs where event_type='comment' and event_id=comment_id),'Own comments must not notify their author';
+  execute 'set local role authenticated';
   begin
     perform public.add_moment_comment(moment,'   ',pg_catalog.gen_random_uuid());
     raise exception 'Blank comment accepted';
@@ -69,6 +72,13 @@ begin
   exception when insufficient_privilege then null; end;
   perform set_config('request.jwt.claims',jsonb_build_object('sub',member,'role','authenticated')::text,true);
   perform public.add_moment_comment(moment,'Looks good!',reply_id);
+  assert (select count(*)=0 from public.list_comment_notifications()),'Comment authors must not receive another owner notification';
+  execute 'reset role';
+  assert (select count(*)=1 from public.notification_jobs where event_type='comment' and event_id=reply_id),'Comment must enqueue one durable notification';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',host,'role','authenticated')::text,true);
+  assert (select count(*)=1 from public.list_comment_notifications()),'Photo owner must see a comment notification';
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',member,'role','authenticated')::text,true);
   assert (select count(*)=2 from public.list_moment_comments(moment)),'Approved non-close member must see the thread';
   assert (select display_name='Test host' from public.list_moment_comments(moment) where id=comment_id),'Thread must include author names';
   begin
@@ -80,6 +90,7 @@ begin
   perform public.add_moment_comment(moment,'Another reply',pg_catalog.gen_random_uuid());
   perform set_config('request.jwt.claims',jsonb_build_object('sub',outsider,'role','authenticated')::text,true);
   assert (select count(*)=0 from public.moment_comments where update_id=moment),'Unrelated people must not read comments';
+  assert (select count(*)=0 from public.list_comment_notifications()),'Outsiders must not read comment notifications';
   begin
     perform public.list_moment_comments(moment);
     raise exception 'Outsider read thread through RPC';

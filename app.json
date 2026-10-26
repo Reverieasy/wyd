@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "watchu doin?",
+    "name": "watchudoin?",
     "slug": "wyd",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "watchudoin",
-    "icon": "./assets/app-icon-white.png",
+    "icon": "./assets/app-icon-safe.png",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#141119",
     "ios": {
@@ -14,15 +14,16 @@
     },
     "android": {
       "package": "com.watchudoin.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/app-icon-white.png"
+        "foregroundImage": "./assets/app-icon-safe.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
-      "favicon": "./assets/app-icon-white.png"
+      "favicon": "./assets/app-icon-safe.png"
     },
     "plugins": [
       [
@@ -50,7 +51,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow watchu doin? to take moment photos.",
+          "cameraPermission": "Allow watchudoin? to take moment photos.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false
         }
@@ -58,7 +59,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow watchu doin? to choose a moment photo.",
+          "photosPermission": "Allow watchudoin? to choose a moment photo.",
           "microphonePermission": false
         }
       ],
@@ -81,7 +82,15 @@
           ]
         }
       ],
-      "./plugins/withPrivateWidgetImages"
+      "./plugins/withPrivateWidgetImages",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": "Allow watchudoin? to save moment photos to your gallery.",
+          "granularPermissions": []
+        }
+      ]
     ]
   }
 }

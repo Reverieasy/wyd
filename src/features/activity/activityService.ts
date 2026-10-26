@@ -35,18 +35,20 @@ export const activityService = {
       p_limit: ACTIVITY_PAGE_LIMIT,
     });
 
-    const [nudgesResult, reactionsResult, cursorResult, momentsResult] = await Promise.all([
+    const [nudgesResult, reactionsResult, cursorResult, momentsResult, commentsResult] = await Promise.all([
       nudgesQuery,
       ownUpdateIds.length > 0
         ? reactionsQuery!
         : Promise.resolve({ data: [], error: null }),
       client.from('activity_reads').select('*').eq('user_id', userId).maybeSingle(),
       momentsQuery,
+      client.rpc('list_comment_notifications', { p_limit: ACTIVITY_PAGE_LIMIT + 1, ...(cursor ? { p_before_created_at: cursor.createdAt } : {}) }),
     ]);
     if (nudgesResult.error) throw readableServiceError(nudgesResult.error);
     if (reactionsResult.error) throw readableServiceError(reactionsResult.error);
     if (cursorResult.error) throw readableServiceError(cursorResult.error);
     if (momentsResult.error) throw readableServiceError(momentsResult.error);
+    if (commentsResult.error) throw readableServiceError(commentsResult.error);
 
     const actorIds = new Set<string>();
     nudgesResult.data.forEach((row) => {
@@ -89,6 +91,10 @@ export const activityService = {
     });
 
     const allItems: ActivityItem[] = [
+      ...commentsResult.data.map(row => ({
+        id: `comment:${row.id}`, kind: 'comment' as const, updateId: row.update_id, createdAt: row.created_at, read: isRead(row.created_at),
+        actor: mapProfile({ id: row.user_id, username: row.username, display_name: row.display_name, avatar_path: row.avatar_path, created_at: row.created_at, updated_at: row.created_at, username_changed_at: null }),
+      })),
       ...momentsResult.data.filter((update) => update.sender_id !== userId).flatMap((update) => {
         const sender = profiles.get(update.sender_id);
         return sender ? [{

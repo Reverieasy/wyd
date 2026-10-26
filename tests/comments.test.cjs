@@ -8,7 +8,7 @@ const ts = require('typescript');
 function load(file, mocks) {
   const module = { exports: {} };
   const output = ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  vm.runInNewContext(output, { module, exports: module.exports, Error, require: id => Object.hasOwn(mocks, id) ? mocks[id] : require(id) });
+  vm.runInNewContext(output, { module, exports: module.exports, Error, requestAnimationFrame: callback => callback(), require: id => Object.hasOwn(mocks, id) ? mocks[id] : require(id) });
   return module.exports;
 }
 function service(rpc) {
@@ -16,6 +16,7 @@ function service(rpc) {
     '@/src/lib/supabase': { getSupabase: () => ({ rpc, from: () => ({ select: () => ({ in: async () => ({ data: [] }) }) }) }) },
     '@/src/lib/serviceError': { ServiceError: class extends Error { constructor(message, code) { super(message); this.code = code; } }, readableServiceError: e => e },
     '@/src/features/profiles/profileService': { mapProfile: row => ({ avatarUrl: row.avatar_path }) },
+    '@/src/features/notifications/notificationService': { notificationService: { async sendPush() {} } },
   });
 }
 test('comments reject blank and oversized text while accepting 500 emoji characters', async () => {
@@ -46,9 +47,9 @@ test('comment permission errors give a useful message without an unexpected serv
   await assert.rejects(commentService.list('hidden'), /no longer available/);
 });
 
-function ui(t, overrides = {}) {
+function ui(t, overrides = {}, props = {}) {
   const hooks = [];
-  let cursor = 0, effects = [], uuid = 0;
+  let cursor = 0, effects = [], uuid = 0, showKeyboard = () => {};
   const react = {
     useRef(initial) { const i = cursor++; return hooks[i] ??= { current: initial }; },
     useState(initial) { const i = cursor++; if (!(i in hooks)) hooks[i] = initial; return [hooks[i], next => { hooks[i] = typeof next === 'function' ? next(hooks[i]) : next; }]; },
@@ -64,7 +65,7 @@ function ui(t, overrides = {}) {
     react,
     'expo-router': { useFocusEffect: fn => react.useEffect(fn, [fn]) },
     'expo-crypto': { randomUUID: () => 'request-' + ++uuid },
-    'react-native': { View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator', StyleSheet: { create: value => value } },
+    'react-native': { View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator', Keyboard: { addListener: (_event, callback) => { showKeyboard = callback; return { remove() {} }; } }, StyleSheet: { create: value => value } },
     '@expo/vector-icons/Feather': { __esModule: true, default: 'Feather' },
     'expo-linear-gradient': { LinearGradient: 'LinearGradient' },
     '@/src/features/comments/commentService': { commentService: api, COMMENT_MAX_LENGTH: 500 },
@@ -74,11 +75,19 @@ function ui(t, overrides = {}) {
   for (const name of ['ActionButton', 'Avatar', 'ConfirmationDialog', 'TextField']) mocks['./' + name] = { [name]: name };
   mocks['./primitives/AppText'] = { AppText: 'AppText' };
   const { MomentComments } = load('src/components/MomentComments.tsx', mocks);
-  const render = () => { cursor = 0; effects = []; const tree = MomentComments({ updateId: 'moment', userId: 'me' }); effects.forEach(fn => fn()); return tree; };
+  const render = () => { cursor = 0; effects = []; const tree = MomentComments({ updateId: 'moment', userId: 'me', ...props }); effects.forEach(fn => fn()); return tree; };
   const nodes = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
   t.after(() => hooks.forEach(hook => hook?.cleanup?.()));
-  return { render, nodes, flush: () => new Promise(resolve => setImmediate(resolve)) };
+  return { render, nodes, showKeyboard: () => showKeyboard(), flush: () => new Promise(resolve => setImmediate(resolve)) };
 }
+test('the focused comment composer is revealed again after the phone keyboard opens', async t => {
+  let revealed = 0;
+  const app = ui(t, {}, { onComposerFocus: () => revealed++ }); app.render(); await app.flush();
+  const input = app.nodes(app.render()).find(node => node.type === 'TextField');
+  input.props.onFocus(); assert.equal(revealed, 1);
+  app.showKeyboard(); assert.equal(revealed, 2);
+  input.props.onBlur(); app.showKeyboard(); assert.equal(revealed, 2);
+});
 test('Messenger comments show profiles, oldest-first bubbles, and an icon-only send control', async t => {
   const app = ui(t); app.render(); await app.flush();
   const nodes = app.nodes(app.render());

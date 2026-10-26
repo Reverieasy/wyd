@@ -10,7 +10,7 @@ type SendUpdateInput = {
   recipientIds: string[];
   circleIds?: string[];
   caption: string;
-  statusText: string;
+  statusText: string | null;
   isQuiet: boolean;
   clientRequestId: string;
 };
@@ -49,7 +49,7 @@ export const updateService = {
 
   async send(input: SendUpdateInput, onStage?: (stage: SendStage) => void): Promise<{ row: UpdateRowType; photoUrl: string | null }> {
     if (input.caption.length > 150) throw new ServiceError(updateErrors.caption_too_long, 'caption_too_long');
-    if (input.statusText.length > 40) throw new ServiceError(updateErrors.status_too_long, 'status_too_long');
+    if (input.statusText && input.statusText.length > 40) throw new ServiceError(updateErrors.status_too_long, 'status_too_long');
     if (input.recipientIds.length === 0 && !input.circleIds?.length) throw new ServiceError(updateErrors.recipient_required, 'recipient_required');
     onStage?.('preparing');
     const photo = await photoService.prepare(input.photo);
@@ -64,7 +64,7 @@ export const updateService = {
         p_photo_path: photoPath,
         p_recipient_ids: input.recipientIds,
         p_caption: input.caption.trim() || null,
-        p_status_text: input.statusText.trim() || null,
+        p_status_text: input.statusText?.trim() || null,
         p_is_quiet: input.isQuiet,
         p_client_request_id: input.clientRequestId,
         ...(circleIds.length ? { p_circle_ids: circleIds } : {}),

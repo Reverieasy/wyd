@@ -19,21 +19,28 @@ let sendAction;
 })(ast);
 assert.ok(sendAction);
 
-function sendHarness({ responseNudgeId = null, sendError = null } = {}) {
+function sendHarness({ responseNudgeId = null, sendError = null, status = 'studying' } = {}) {
   const uploaded = deferred(), feed = deferred(), activity = deferred(), nudge = deferred();
   const events = [];
   const state = { server: { profile: { id: 'owner' }, session: { user: { id: 'owner' } }, termsStatus: { acceptedAt: 'today' }, connections: [{ connection: { status: 'accepted' }, person: { id: 'friend' } }] }, local: { draft: { photo: { uri: 'file:///photo.jpg' }, recipientIds: ['friend'], caption: '', status: 'studying', sending: false, clientRequestId: null, respondingToNudgeId: responseNudgeId } } };
   const context = { state, stateRef: { current: state }, sendingRef: { current: false }, Crypto: { randomUUID: () => 'request' }, statusDetails: { studying: { label: 'Studying' } },
     dispatch(event) { events.push(event); },
-    updateService: { async send() { events.push('upload'); await uploaded.promise; if (sendError) throw sendError; return { row: { id: 'saved', sender_id: 'owner', photo_path: 'owner/photo.jpg' }, photoUrl: 'https://example/photo' }; }, errorMessage: error => error.message },
+    updateService: { async send(input) { events.push({ type: 'send_input', input }); events.push('upload'); await uploaded.promise; if (sendError) throw sendError; return { row: { id: 'saved', sender_id: 'owner', photo_path: 'owner/photo.jpg' }, photoUrl: 'https://example/photo' }; }, errorMessage: error => error.message },
     loadUpdates() { events.push('feed'); return feed.promise; }, loadActivity() { events.push('activity'); return activity.promise; },
     nudgeService: { markResponded() { events.push('nudge'); return nudge.promise; }, errorMessage: error => error.message },
     notificationService: { async sendPush() { events.push('push'); } }, async offerNotificationPrompt() {},
   };
   const output = ts.transpileModule(`module.exports = ${sendAction}`, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  state.local.draft.status = status;
   const module = { exports: {} }; vm.runInNewContext(output, { ...context, module });
   return { send: module.exports, uploaded, feed, activity, nudge, events, state };
 }
+
+test('a moment can be sent with no feeling selected', async () => {
+  const h = sendHarness({ status: null }); const result = h.send();
+  assert.equal(h.events.find(event => event.type === 'send_input').input.statusText, null);
+  h.uploaded.resolve(); assert.equal(await result, 'saved');
+});
 
 test('successful send returns immediately after saving, without waiting for feed or activity refresh', async () => {
   const h = sendHarness(); const result = h.send();

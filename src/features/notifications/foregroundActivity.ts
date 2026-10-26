@@ -24,6 +24,7 @@ export class ForegroundActivityTracker {
       if (item.actor.id === userId || item.read || !item.updateId || !preferences.enabled) continue;
       if (item.kind === 'moment' && preferences.moments && !item.quiet) fresh.push(item);
       if (item.kind === 'reaction' && preferences.reactions) fresh.push(item);
+      if (item.kind === 'comment' && preferences.comments) fresh.push(item);
     }
     this.initialized = true;
     this.watermark = Math.max(this.watermark, ...items.map(item => Date.parse(item.createdAt)).filter(Number.isFinite));

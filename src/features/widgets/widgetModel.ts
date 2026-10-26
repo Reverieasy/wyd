@@ -14,7 +14,7 @@ export type WidgetSnapshot = {
 export const defaultWidgetSettings: WidgetSettings = { enabled: false, personId: null };
 
 export function emptyWidget(mode: WidgetSnapshot['mode'] = 'setup'): WidgetSnapshot {
-  return { ownerId: null, personId: null, name: 'Whatchu doin?', status: mode === 'signed-out' ? 'Sign in to see your person' : mode === 'unavailable' ? 'Open the app to refresh' : 'Choose your close person', createdAt: null, expiresAt: null, updateId: null, photoData: null, mode };
+  return { ownerId: null, personId: null, name: 'watchudoin?', status: mode === 'signed-out' ? 'Sign in to see your person' : mode === 'unavailable' ? 'Open the app to refresh' : 'Choose your close person', createdAt: null, expiresAt: null, updateId: null, photoData: null, mode };
 }
 
 export function isCurrentWidgetPhoto(snapshot: WidgetSnapshot, userId: string | null, now = Date.now()) {

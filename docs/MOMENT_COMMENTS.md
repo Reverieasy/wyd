@@ -1,6 +1,6 @@
 # Moment comments
 
-Users can open a moment from Home or Moments to read and write comments. The thread uses profile avatars, message bubbles, and an icon-only send button. Their own bubbles align right; other people's bubbles align left. Older messages load above the conversation. Refresh fetches new comments; push notifications for comments are not included.
+Users can open a moment from Home or Moments to read and write comments. The thread uses profile avatars, message bubbles, and an icon-only send button. Their own bubbles align right; other people's bubbles align left. Older messages load above the conversation. Refresh fetches new comments. New comments from other people alert the moment owner in Activity and in foreground popups, respecting their Comments notification preference. Background phone push is not configured in this build.
 
 The latest visual update uses rounded white cards, lavender bubbles, and a purple gradient send control. The detail header has the rounded Nunito wordmark with a purple “doin?” accent, shared with Home and login loading. Corner option menus and the photo settings overlay are removed; reporting another person's moment remains available as a text action. Comments remain text-only, as requested.
 
@@ -13,3 +13,5 @@ The thread RPC exposes only the author name and username needed for comments. Av
 The `moment_comments` table has RLS enabled. Client writes are restricted to validated RPCs, including a 20-comments-per-minute per-user limit. Deleting a moment or account cascades to its comments, so the 30-day photo cleanup also removes its thread.
 
 Validation: transactional checks in `tests/circles.sql` verify comment isolation, host/member posting, retry idempotency, invalid text, ownership for deletion, block behavior, retention, and cascading deletion. `tests/comments.test.cjs` covers service pagination, Unicode limits, retry handling, and the Messenger-style composer.
+
+The composer scrolls above the keyboard on focus and after the keyboard opens. Android uses native window resizing; iOS uses keyboard avoidance. Comments remain text-only.

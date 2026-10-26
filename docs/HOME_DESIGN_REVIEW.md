@@ -10,8 +10,10 @@ The wordmark uses bundled Nunito Black for softer edges and a purple gradient on
 
 Profile has a lavender backdrop, a large avatar ring, gradient Edit profile button, separated statistics card, and rounded settings rows with purple icon tiles. Its statistics show approved circle memberships instead of reactions, with a link to circle management. Moments has a larger left-aligned heading, illustrated retention banner, and responsive two-column cards with separate date footers and working options.
 
-Dark is the initial theme when no appearance preference has been saved. Explicit Light, Dark, and System selections continue to persist. The next native build also uses the dark startup background; APK files have not been rebuilt.
+Dark is the initial theme when no appearance preference has been saved. Explicit Light, Dark, and System selections continue to persist. The native startup background also uses the dark theme.
 
 The Android widget uses a light rounded card, pastel SVG placeholder, dark name/status, lavender timestamp, and a gradient Nudge button. Its authorized photo downloads, expiry checks, settings links, and account-scoped Nudge action are preserved. The widget picker preview is regenerated from the styled component.
 
-Visual checks in `dist/design-review` use fixture content and initials rather than a signed-in account. Home, moment detail, Profile, and Moments were inspected at 320px and 390px widths, including dark mode; Get started, loading, and widget previews were also checked. These checks do not replace testing a future installed Android build. No APK was built.
+Visual checks in `dist/design-review` use fixture content and initials rather than a signed-in account. Home, moment detail, Profile, and Moments were inspected at 320px and 390px widths, including dark mode; Get started, loading, and widget previews were also checked. These fixture checks complement the Android preview build and do not establish signed-in device behavior.
+
+Version 1.0.2 joins the name as watchudoin? everywhere, preserving the rounded font and purple accent. The download action is an accessible icon. Moment detail shows the original photo ratio and opens a full-photo viewer. Gallery copies include a small watchudoin? watermark in the lower right; cloud retention does not remove copies saved to a device. Feelings start unselected and can be toggled off.

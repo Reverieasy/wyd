@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ForegroundActivityTracker } from '../src/features/notifications/foregroundActivity.ts';
 
-const prefs = { enabled: true, moments: true, reactions: true, nudges: true, connections: true };
+const prefs = { enabled: true, moments: true, reactions: true, comments: true, nudges: true, connections: true };
 const moment = (id, second, extra = {}) => ({ id: `moment:${id}`, kind: 'moment', actor: { id: 'friend' }, createdAt: `2026-10-26T01:00:${String(second).padStart(2, '0')}.000Z`, updateId: id, read: false, ...extra });
 const read = (tracker, items, options = {}) => tracker.read(options.user ?? 'owner', options.hydrated ?? true, items, { ...prefs, ...options.preferences }, options.active ?? true);
+
+test('new comment alerts respect their preference and do not replay after a refresh', () => {
+  const tracker = new ForegroundActivityTracker(); read(tracker, []);
+  const comment = moment('commented', 20, { kind: 'comment', id: 'comment:one' });
+  assert.equal(read(tracker, [comment]).length, 1);
+  assert.equal(read(tracker, [comment]).length, 0);
+  assert.equal(read(tracker, [moment('commented', 30, { kind: 'comment', id: 'comment:two' })], { preferences: { comments: false } }).length, 0);
+});
 
 test('initial loading seeds history without creating old-notification popups', () => {
   const tracker = new ForegroundActivityTracker();

@@ -35,7 +35,7 @@ export function ForegroundNotificationBanner() {
     const fresh = tracker.read(userId, state.server.activityHydrated, state.server.activity, preferences, active);
     if (!active || systemBanner || !preferences.enabled) { setQueue([]); return; }
     setQueue(current => {
-      const allowed = current.filter(item => item.kind === 'moment' ? preferences.moments : preferences.reactions);
+      const allowed = current.filter(item => item.kind === 'moment' ? preferences.moments : item.kind === 'comment' ? preferences.comments : preferences.reactions);
       if (!fresh.length && allowed.length === current.length) return current;
       return [...allowed, ...fresh].slice(-4);
     });
@@ -51,7 +51,7 @@ export function ForegroundNotificationBanner() {
   if (!item || !userId || previousUser.current !== userId || !active || !preferences.enabled || systemBanner || state.server.notificationPromptVisible) return null;
   const dismiss = () => setQueue(current => current.slice(1));
   const open = () => { dismiss(); router.push({ pathname: '/(flows)/moment/[id]', params: { id: item.updateId! } }); };
-  const message = item.kind === 'moment' ? 'Sent you a photo moment' : `Reacted ${item.reaction ? reactionEmoji[item.reaction] : '❤️'} to your moment`;
+  const message = item.kind === 'moment' ? 'Sent you a photo moment' : item.kind === 'comment' ? 'Commented on your moment' : `Reacted ${item.reaction ? reactionEmoji[item.reaction] : '❤️'} to your moment`;
   return <View pointerEvents="box-none" style={[styles.overlay, { top: insets.top + 12 }]}>
     <SoftEntrance key={`${item.id}:${item.createdAt}`} style={styles.banner}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${item.actor.displayName}: ${message}. Open moment.`} onPress={open} style={styles.body}>

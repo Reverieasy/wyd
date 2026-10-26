@@ -10,10 +10,10 @@ import { environment } from '@/src/lib/environment';
 import { createMomentPhotoSource } from '@/src/features/updates/photoAccess';
 import { useAppStore } from '@/src/state/appStore';
 
-type Props = { photo: PhotoAsset; height?: number; radius?: number; style?: ViewStyle; onLoadError?: () => void };
+type Props = { photo: PhotoAsset; height?: number; radius?: number; style?: ViewStyle; contentFit?: 'cover' | 'contain'; onSize?: (width: number, height: number) => void; onLoadError?: () => void };
 
 
-export function MomentPhoto({ photo, height = 280, radius = radii[20], style, onLoadError }: Props) {
+export function MomentPhoto({ photo, height = 280, radius = radii[20], style, onLoadError, contentFit = 'cover', onSize }: Props) {
   const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const paletteColors = {
   accent: colors.background.accentSoft,
@@ -30,7 +30,7 @@ export function MomentPhoto({ photo, height = 280, radius = radii[20], style, on
   return (
     <View style={[styles.base, { backgroundColor: paletteColors[palette], borderRadius: radius, height: style?.aspectRatio ? undefined : height }, style]}>
       {source && !failed ? (
-        <Image key={userId ?? 'local-preview'} source={source} cachePolicy="none" transition={0} onError={() => { setFailed(true); onLoadError?.(); }} contentFit="cover" style={styles.image} />
+        <Image key={userId ?? 'local-preview'} source={source} cachePolicy="none" transition={0} onLoad={event => onSize?.(event.source.width, event.source.height)} onError={() => { setFailed(true); onLoadError?.(); }} contentFit={contentFit} style={styles.image} />
       ) : (
         <>
           <View style={styles.focusFrame} />

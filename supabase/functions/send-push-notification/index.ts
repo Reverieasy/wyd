@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type EventType = "moment" | "nudge" | "reaction" | "connection_request" | "connection_accepted";
+type EventType = "moment" | "nudge" | "reaction" | "comment" | "connection_request" | "connection_accepted";
 
 type NotificationTarget = {
   actorId: string;
@@ -9,11 +9,11 @@ type NotificationTarget = {
   title: string;
   body: string;
   data: Record<string, string>;
-  preference: "moments" | "nudges" | "reactions" | "connections";
+  preference: "moments" | "nudges" | "reactions" | "comments" | "connections";
 };
 
 const jsonHeaders = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,apikey,content-type,x-client-info", "Access-Control-Allow-Methods": "POST,OPTIONS" };
-const eventTypes = new Set<EventType>(["moment", "nudge", "reaction", "connection_request", "connection_accepted"]);
+const eventTypes = new Set<EventType>(["moment", "nudge", "reaction", "comment", "connection_request", "connection_accepted"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function response(status: number, body: Record<string, unknown>) {
@@ -119,6 +119,14 @@ Deno.serve(async (request: Request) => {
       data: { type, nudgeId: eventId, senderId: callerId },
       preference: "nudges",
     };
+  } else if (type === "comment") {
+    const { data: comment, error: commentError } = await admin.from('moment_comments').select('id,update_id,user_id').eq('id', eventId).maybeSingle();
+    if (commentError) throw new Error('comment_lookup_failed');
+    if (!comment || comment.user_id !== callerId) return response(403, { error: 'event_not_owned' });
+    const { data: update, error: updateError } = await admin.from('updates').select('sender_id').eq('id', comment.update_id).maybeSingle();
+    if (updateError) throw new Error('update_lookup_failed');
+    if (!update) return response(404, { error: 'event_target_missing' });
+    target = { actorId: callerId, recipientIds: update.sender_id === callerId ? [] : [update.sender_id], title: 'commented on your moment', body: 'Open watchudoin? to read it.', data: { type, updateId: comment.update_id, commentId: eventId }, preference: 'comments' };
   } else if (type === "reaction") {
     const { data: reaction, error: reactionError } = await admin.from("reactions").select("id,update_id,user_id,reaction").eq("id", eventId).maybeSingle();
     if (reactionError) throw new Error("reaction_lookup_failed");
@@ -162,12 +170,12 @@ Deno.serve(async (request: Request) => {
   }
 
   target.recipientIds = [...new Set(target.recipientIds.filter((id) => id !== callerId))];
-  const requireAcceptedConnection = type === "moment" || type === "nudge" || type === "reaction";
+  const requireAcceptedConnection = type === "moment" || type === "nudge" || type === "reaction" || type === "comment";
   const allowed = await Promise.all(target.recipientIds.map(async (recipientId) => ({
     recipientId,
     allowed: await pairIsAllowed(admin, callerId, recipientId, requireAcceptedConnection,
-      type === 'moment' || type === 'reaction' ? target.data.updateId : undefined,
-      type === 'reaction' ? callerId : recipientId),
+      type === 'moment' || type === 'reaction' || type === 'comment' ? target.data.updateId : undefined,
+      type === 'reaction' || type === 'comment' ? callerId : recipientId),
   })));
   target.recipientIds = allowed.filter((item) => item.allowed).map((item) => item.recipientId);
   if (target.recipientIds.length === 0) return response(200, { sent: 0, skipped: "no_recipients" });
@@ -175,12 +183,12 @@ Deno.serve(async (request: Request) => {
   const { data: actor, error: actorError } = await admin.from("profiles").select("display_name").eq("id", target.actorId).maybeSingle();
     if (actorError) throw new Error("actor_lookup_failed");
   const actorName = actor?.display_name?.trim() || "Someone";
-  const { data: preferences, error: preferenceError } = await admin.from("notification_preferences").select("user_id,enabled,moments,nudges,reactions,connections").in("user_id", target.recipientIds);
+  const { data: preferences, error: preferenceError } = await admin.from("notification_preferences").select("*").in("user_id", target.recipientIds);
   if (preferenceError) return response(503, { error: "preference_lookup_failed" });
   const preferencesByUser = new Map((preferences ?? []).map((row) => [row.user_id, row]));
   const eligibleRecipients = target.recipientIds.filter((userId) => {
     const preference = preferencesByUser.get(userId);
-    return !preference || (preference.enabled && preference[target.preference]);
+    return !preference || (preference.enabled && preference[target.preference] !== false);
   });
   if (eligibleRecipients.length === 0) return response(200, { sent: 0, skipped: "preferences" });
 

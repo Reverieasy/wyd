@@ -1,8 +1,8 @@
 import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, Avatar, MomentPhoto, ReactionBar, Screen } from '@/src/components';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +11,8 @@ import { spacing } from '@/src/theme';
 import { isMomentRetained, MOMENT_RETENTION_MS } from '@/src/features/updates/momentRetention';
 import { MomentComments } from '@/src/components/MomentComments';
 import { BrandWordmark } from '@/src/components/BrandWordmark';
+import { FullScreenMomentPhoto } from '@/src/components/FullScreenMomentPhoto';
+import { PhotoDownloadButton } from '@/src/components/PhotoDownloadButton';
 
 export default function MomentDetailRoute() {
   const { colors, isDark, styles } = useThemeStyles(makeStyles);
@@ -18,6 +20,10 @@ export default function MomentDetailRoute() {
   const { state, actions } = useAppStore();
   const [checked, setChecked] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [fullPhoto, setFullPhoto] = useState(false);
+  const [photoAspect, setPhotoAspect] = useState(1.44);
+  const pageScroll = useRef<ScrollView>(null);
+  const revealComposer = useCallback(() => pageScroll.current?.scrollToEnd({ animated: false }), []);
   const retriedPhotoRef = useRef(false);
   const seenRequestsRef = useRef(new Set<string>());
   const refreshUpdatesRef = useRef(actions.refreshUpdates);
@@ -64,7 +70,7 @@ export default function MomentDetailRoute() {
   };
 
   return (
-    <Screen scroll backgroundColor={isDark ? colors.background.app : '#FAF7FF'} keyboardShouldPersistTaps="handled" contentStyle={styles.content}>
+    <Screen scroll keyboardAvoiding scrollRef={pageScroll} backgroundColor={isDark ? colors.background.app : '#FAF7FF'} keyboardShouldPersistTaps="handled" contentStyle={styles.content}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close moment" style={styles.spacer} onPress={() => router.back()}>
@@ -83,10 +89,11 @@ export default function MomentDetailRoute() {
       ) : null}
       {visibleUpdate ? (
         <View style={{ gap: 10 }}>
-          <MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} radius={18} style={{ height: undefined, aspectRatio: 1.44 }} onLoadError={refreshExpiredPhoto} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Open full photo" onPress={() => setFullPhoto(true)}><MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} contentFit="contain" radius={18} style={{ aspectRatio: photoAspect }} onSize={(width, height) => { if (width && height) setPhotoAspect(Math.max(0.3, Math.min(3, width / height))); }} onLoadError={refreshExpiredPhoto} /><View pointerEvents="none" style={styles.expandPhoto}><Feather name="maximize-2" color="white" size={17} /></View></Pressable>
           <View style={styles.metadata}>
             <View style={styles.authorRow}><View><Avatar name={visibleUpdate.sender.displayName} uri={visibleUpdate.sender.avatarUrl ?? undefined} size={44} />{visibleUpdate.senderId === profileId ? <View accessible={false} style={styles.avatarDot} /> : null}</View><View style={{ flex: 1, gap: 3 }}><AppText style={styles.author}><AppText style={styles.title}>{visibleUpdate.senderId === profileId ? 'You' : visibleUpdate.sender.displayName}</AppText> · {visibleUpdate.statusText ?? 'Moment'}</AppText><AppText style={styles.time}>{relativeTime(visibleUpdate.createdAt)} ago</AppText></View></View>
             {visibleUpdate.caption ? <AppText variant="body14">{visibleUpdate.caption}</AppText> : null}
+            <PhotoDownloadButton updateId={visibleUpdate.id} />
             {profileId && visibleUpdate.senderId !== profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Report moment" onPress={() => router.push({ pathname: '/(flows)/report', params: { updateId: visibleUpdate.id, userId: visibleUpdate.senderId, name: visibleUpdate.sender.displayName } })} style={styles.report}><AppText variant="caption11" tone="secondary">Report moment</AppText></Pressable> : null}
             {profileId ? (
             <View style={styles.reactionRow}><View style={styles.reactionPill}><ReactionBar compact
@@ -98,7 +105,8 @@ export default function MomentDetailRoute() {
             /></View></View>
             ) : null}
           </View>
-          {profileId ? <MomentComments key={`${visibleUpdate.id}:${profileId}`} updateId={visibleUpdate.id} userId={profileId} /> : null}
+          {profileId ? <MomentComments key={`${visibleUpdate.id}:${profileId}`} updateId={visibleUpdate.id} userId={profileId} onComposerFocus={revealComposer} /> : null}
+          <FullScreenMomentPhoto visible={fullPhoto} uri={visibleUpdate.photoUrl} updateId={visibleUpdate.id} onClose={() => setFullPhoto(false)} />
           {state.server.error ? <View style={{ gap: 8 }}><AppText accessibilityRole="alert" style={{ color: '#FCA5A5' }}>{state.server.error}</AppText>{!state.server.termsStatus?.acceptedAt ? <ActionButton label="Review Terms" onPress={() => router.push('/(flows)/terms')} /> : null}</View> : null}
         </View>
       ) : null}
@@ -113,6 +121,7 @@ const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
   title: { fontSize: 14, lineHeight: 21, fontFamily: 'PlusJakartaSans_700Bold', color: isDark ? colors.text.primary : '#150B32' },
   spacer: { alignItems: 'center', justifyContent: 'center', height: 44, width: 44, borderRadius: 22, backgroundColor: isDark ? colors.background.accentSoft : '#F0E9FF' },
   headerBalance: { width: 44 }, report: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  expandPhoto: { position: 'absolute', right: 10, bottom: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, author: { fontSize: 14, lineHeight: 21, color: isDark ? colors.text.primary : '#150B32' }, time: { fontSize: 11, lineHeight: 17, color: isDark ? colors.text.secondary : '#948AA8' },
   avatarDot: { position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: '#BD96FF', borderWidth: 1, borderColor: colors.background.card },
   reactionRow: { borderTopWidth: 1, borderTopColor: isDark ? colors.border.default : '#EEE7F8', paddingTop: 6, flexDirection: 'row' }, reactionPill: { paddingHorizontal: 10, backgroundColor: isDark ? colors.background.loveSoft : '#FFF1F4', borderRadius: 22 },

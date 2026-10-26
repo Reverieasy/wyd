@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import type { AppNotificationData } from './notificationTypes';
 
 export function navigateForNotification(data: AppNotificationData) {
-  if (data.type === 'moment' || data.type === 'reaction') {
+  if (data.type === 'moment' || data.type === 'reaction' || data.type === 'comment') {
     router.push({ pathname: '/(flows)/moment/[id]', params: { id: data.updateId } });
     return;
   }

@@ -1,7 +1,7 @@
 import type { ReactionType } from './reaction';
 import type { User } from './user';
 
-export type ActivityKind = 'moment' | 'nudge' | 'reaction' | 'connection_request' | 'connection_accepted';
+export type ActivityKind = 'moment' | 'nudge' | 'reaction' | 'comment' | 'connection_request' | 'connection_accepted';
 
 export type ActivityItem = {
   id: string;

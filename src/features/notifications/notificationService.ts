@@ -12,16 +12,17 @@ export type NotificationPreferences = {
   moments: boolean;
   nudges: boolean;
   reactions: boolean;
+  comments: boolean;
   connections: boolean;
 };
 
-const defaults: NotificationPreferences = { enabled: true, moments: true, nudges: true, reactions: true, connections: true };
+const defaults: NotificationPreferences = { enabled: true, moments: true, nudges: true, reactions: true, comments: true, connections: true };
 type NotificationsModule = typeof ExpoNotifications;
 let notificationsModule: NotificationsModule | null | undefined;
 
 function getNotificationsModule(): NotificationsModule | null {
   if (notificationsModule !== undefined) return notificationsModule;
-  if (Constants.appOwnership === 'expo' || Constants.expoGoConfig) {
+  if (Constants.appOwnership === 'expo') {
     notificationsModule = null;
     return notificationsModule;
   }
@@ -62,7 +63,7 @@ export const notificationService = {
     if (!Notifications) return;
     try {
       await Notifications.setNotificationChannelAsync('watchu-doin', {
-        name: 'Watchu Doin?',
+        name: 'watchudoin?',
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 180],
         lightColor: '#6C56C7',
@@ -74,7 +75,7 @@ export const notificationService = {
 
   async permissionState(): Promise<NotificationPermissionState> {
     try {
-      if (Platform.OS === 'web' || !Device.isDevice) return 'unavailable';
+      if (Platform.OS === 'web' || !Device.isDevice || !projectId()) return 'unavailable';
       const Notifications = getNotificationsModule();
       if (!Notifications) return 'unavailable';
       const permission = await Notifications.getPermissionsAsync();
@@ -87,7 +88,7 @@ export const notificationService = {
 
   async requestPermission(): Promise<NotificationPermissionState> {
     try {
-      if (Platform.OS === 'web' || !Device.isDevice) return 'unavailable';
+      if (Platform.OS === 'web' || !Device.isDevice || !projectId()) return 'unavailable';
       const Notifications = getNotificationsModule();
       if (!Notifications) return 'unavailable';
       await this.configureChannel();
@@ -160,7 +161,7 @@ export const notificationService = {
   },
 
   async loadPreferences(userId: string): Promise<NotificationPreferences> {
-    const { data, error } = await getSupabase().from('notification_preferences').select('enabled,moments,nudges,reactions,connections').eq('user_id', userId).maybeSingle();
+    const { data, error } = await getSupabase().from('notification_preferences').select('enabled,moments,nudges,reactions,comments,connections').eq('user_id', userId).maybeSingle();
     if (error) throw error;
     return data ?? defaults;
   },

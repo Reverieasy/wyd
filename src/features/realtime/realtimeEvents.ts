@@ -1,4 +1,4 @@
-export type RealtimeEventKind = 'moment' | 'reaction' | 'nudge' | 'nudge_response' | 'connection' | 'seen';
+export type RealtimeEventKind = 'moment' | 'reaction' | 'comment' | 'nudge' | 'nudge_response' | 'connection' | 'seen';
 
 export type AppRealtimeEvent = {
   kind: RealtimeEventKind;
@@ -6,7 +6,7 @@ export type AppRealtimeEvent = {
   updateId?: string;
 };
 
-const kinds = new Set<RealtimeEventKind>(['moment', 'reaction', 'nudge', 'nudge_response', 'connection', 'seen']);
+const kinds = new Set<RealtimeEventKind>(['moment', 'reaction', 'comment', 'nudge', 'nudge_response', 'connection', 'seen']);
 
 export function parseRealtimeEvent(value: unknown): AppRealtimeEvent | null {
   if (!value || typeof value !== 'object') return null;

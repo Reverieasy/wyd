@@ -20,6 +20,7 @@ test('opening a widget photo on a cold launch waits for the signed-in profile be
   };
   const mocks = {
     react: {
+      useCallback: fn => fn,
       useState(initial) { const index = cursor++; if (!(index in hooks)) hooks[index] = initial; return [hooks[index], value => { hooks[index] = value; }]; },
       useRef(initial) { const index = cursor++; return hooks[index] ??= { current: initial }; },
       useEffect(run, dependencies) {
@@ -40,6 +41,8 @@ test('opening a widget photo on a cold launch waits for the signed-in profile be
     '@/src/theme': { spacing: {} },
     '@/src/features/updates/momentRetention': require('../src/features/updates/momentRetention.ts'),
     '@/src/components/MomentComments': { MomentComments: 'MomentComments' },
+    '@/src/components/FullScreenMomentPhoto': { FullScreenMomentPhoto: 'FullScreenMomentPhoto' },
+    '@/src/components/PhotoDownloadButton': { PhotoDownloadButton: 'PhotoDownloadButton' },
     '@/src/theme/ThemeProvider': { useThemeStyles: factory => { const colors = { background: { app: '#fff' }, border: {}, text: {} }; return { colors, styles: factory({ colors }) }; } },
   };
   const output = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../app/(flows)/moment/[id].tsx'), 'utf8'), {

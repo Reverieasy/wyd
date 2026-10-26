@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { LinearGradient } from 'expo-linear-gradient';
 import { commentService, COMMENT_MAX_LENGTH, type CommentPage, type MomentComment } from '@/src/features/comments/commentService';
@@ -13,7 +13,7 @@ import { ConfirmationDialog } from './ConfirmationDialog';
 import { TextField } from './TextField';
 import { AppText } from './primitives/AppText';
 
-export function MomentComments({ updateId, userId }: { updateId: string; userId: string }) {
+export function MomentComments({ updateId, userId, onComposerFocus }: { updateId: string; userId: string; onComposerFocus?: () => void }) {
   const { colors, styles } = useThemeStyles(makeStyles);
   const [page, setPage] = useState<CommentPage>({ items: [], cursor: null, hasMore: false });
   const [body, setBody] = useState('');
@@ -27,6 +27,11 @@ export function MomentComments({ updateId, userId }: { updateId: string; userId:
   const request = useRef<{ body: string; id: string } | null>(null);
   const thread = useRef<ScrollView>(null);
   const scrollToLatest = useRef(true);
+  const composerFocused = useRef(false);
+  useEffect(() => {
+    const subscription = Keyboard.addListener('keyboardDidShow', () => { if (composerFocused.current) requestAnimationFrame(() => requestAnimationFrame(() => { if (composerFocused.current) onComposerFocus?.(); })); });
+    return () => subscription.remove();
+  }, [onComposerFocus]);
   const load = useCallback(async (cursor: CommentPage['cursor'] = null) => {
     const own = ++sequence.current;
     scrollToLatest.current = !cursor;
@@ -76,7 +81,7 @@ export function MomentComments({ updateId, userId }: { updateId: string; userId:
         </View></View>;
       })}
     </ScrollView>
-    <View style={styles.composer}><TextField accessibilityLabel="Write a comment" placeholder="Write a comment…" value={body} onChangeText={value => { setBody(value); setMessage(null); }} multiline maxLength={COMMENT_MAX_LENGTH * 2} editable={!sending && !deleting} style={styles.input} /><Pressable accessibilityRole="button" accessibilityLabel="Send comment" accessibilityState={{ disabled: !count || count > COMMENT_MAX_LENGTH || deleting || sending, busy: sending }} disabled={!count || count > COMMENT_MAX_LENGTH || deleting || sending} onPress={() => void post()} style={[styles.sendButton, (!count || count > COMMENT_MAX_LENGTH || deleting) && { opacity: 0.4 }]}><LinearGradient colors={['#B16AFF', '#7832FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sendFill}>{sending ? <ActivityIndicator color="white" size="small" /> : <Feather name="send" color="white" size={20} />}</LinearGradient></Pressable></View>
+    <View style={styles.composer}><TextField onFocus={() => { composerFocused.current = true; onComposerFocus?.(); }} onBlur={() => { composerFocused.current = false; }} accessibilityLabel="Write a comment" placeholder="Write a comment…" value={body} onChangeText={value => { setBody(value); setMessage(null); }} multiline maxLength={COMMENT_MAX_LENGTH * 2} editable={!sending && !deleting} style={styles.input} /><Pressable accessibilityRole="button" accessibilityLabel="Send comment" accessibilityState={{ disabled: !count || count > COMMENT_MAX_LENGTH || deleting || sending, busy: sending }} disabled={!count || count > COMMENT_MAX_LENGTH || deleting || sending} onPress={() => void post()} style={[styles.sendButton, (!count || count > COMMENT_MAX_LENGTH || deleting) && { opacity: 0.4 }]}><LinearGradient colors={['#B16AFF', '#7832FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sendFill}>{sending ? <ActivityIndicator color="white" size="small" /> : <Feather name="send" color="white" size={20} />}</LinearGradient></Pressable></View>
     {count > 400 ? <AppText variant="caption11" tone="secondary" style={{ textAlign: 'right' }}>{count}/{COMMENT_MAX_LENGTH}</AppText> : null}
     {error ? <AppText accessibilityRole="alert" style={styles.error}>{error}</AppText> : null}
     {message ? <AppText accessibilityLiveRegion="polite" variant="caption11" style={{ color: colors.background.accent }}>{message}</AppText> : null}

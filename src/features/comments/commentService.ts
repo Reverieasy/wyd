@@ -1,6 +1,7 @@
 import { getSupabase } from '@/src/lib/supabase';
 import { readableServiceError, ServiceError } from '@/src/lib/serviceError';
 import { mapProfile } from '@/src/features/profiles/profileService';
+import { notificationService } from '@/src/features/notifications/notificationService';
 
 export const COMMENT_MAX_LENGTH = 500;
 const PAGE_SIZE = 30;
@@ -49,6 +50,7 @@ export const commentService = {
     const body = validateComment(input);
     const { data, error } = await getSupabase().rpc('add_moment_comment', { p_update_id: updateId, p_body: body, p_id: requestId });
     if (error) throw mapError(error);
+    if (data) void notificationService.sendPush('comment', data).catch(() => undefined);
     return data;
   },
   async remove(updateId: string, commentId: string) {

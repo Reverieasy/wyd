@@ -30,7 +30,7 @@ export default function TermsRoute() {
       <FlowHeader title="Terms of Use" />
       <View style={styles.intro}>
         <AppText variant="title24">Share with care.</AppText>
-        <AppText variant="body14" tone="secondary">Effective September 25, 2026. These terms govern your use of Watchu Doin?.</AppText>
+        <AppText variant="body14" tone="secondary">Effective September 25, 2026. These terms govern your use of watchudoin?.</AppText>
       </View>
       {sections.map(([title, body]) => (
         <View key={title} style={styles.section}>

@@ -38,7 +38,7 @@ export type MomentUpdate = {
 
 export type UpdateDraft = {
   photo: DraftPhoto | null;
-  status: UpdateStatus;
+  status: UpdateStatus | null;
   recipientIds: UserId[];
   circleIds: string[];
   caption: string;

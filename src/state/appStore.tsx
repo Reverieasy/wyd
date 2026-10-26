@@ -139,7 +139,7 @@ type Action =
   | { type: 'COMPLETE_ONBOARDING' }
   | { type: 'SET_DRAFT_PHOTO'; photo: DraftPhoto }
   | { type: 'CLEAR_DRAFT_PHOTO' }
-  | { type: 'SET_DRAFT_STATUS'; status: UpdateStatus }
+  | { type: 'SET_DRAFT_STATUS'; status: UpdateStatus | null }
   | { type: 'TOGGLE_DRAFT_RECIPIENT'; userId: UserId }
   | { type: 'SET_DRAFT_RECIPIENTS'; userIds: UserId[] }
   | { type: 'SET_DRAFT_CIRCLES'; circleIds: string[] }
@@ -187,7 +187,7 @@ const initialState: AppState = {
     inviteLoading: false,
     inviteError: null,
     realtimeConnected: false,
-    notificationPreferences: { enabled: true, moments: true, nudges: true, reactions: true, connections: true },
+    notificationPreferences: { enabled: true, moments: true, nudges: true, reactions: true, comments: true, connections: true },
     notificationPermission: 'undetermined',
     notificationsLoading: false,
     notificationPromptVisible: false,
@@ -206,7 +206,7 @@ const initialState: AppState = {
   },
   local: {
     onboardingComplete: false,
-    draft: { photo: null, status: 'studying', recipientIds: [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+    draft: { photo: null, status: null, recipientIds: [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
     preferences: { nudgesEnabled: true, quietUpdatesEnabled: true, recentMomentsDays: 30, privacy: 'selected-people' },
   },
 };
@@ -412,7 +412,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'NOTIFICATION_PROMPT': return { ...state, server: { ...state.server, notificationPromptVisible: action.visible } };
     case 'NOTIFICATION_ERROR': return { ...state, server: { ...state.server, notificationsLoading: false, notificationError: action.error } };
     case 'COMPLETE_ONBOARDING': return { ...state, local: { ...state.local, onboardingComplete: true } };
-    case 'SET_DRAFT_PHOTO': return { ...state, local: { ...state.local, draft: { ...state.local.draft, photo: action.photo, clientRequestId: Crypto.randomUUID(), sendStage: 'idle', error: null } } };
+    case 'SET_DRAFT_PHOTO': return { ...state, local: { ...state.local, draft: { ...state.local.draft, photo: action.photo, status: state.local.draft.photo ? state.local.draft.status : null, clientRequestId: Crypto.randomUUID(), sendStage: 'idle', error: null } } };
     case 'CLEAR_DRAFT_PHOTO': return { ...state, local: { ...state.local, draft: { ...state.local.draft, photo: null, clientRequestId: null, sendStage: 'idle', error: null } } };
     case 'SET_DRAFT_STATUS': return { ...state, local: { ...state.local, draft: { ...state.local.draft, status: action.status } } };
     case 'SET_DRAFT_RECIPIENTS': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [...new Set(action.userIds)], error: null } } };
@@ -441,7 +441,7 @@ function reducer(state: AppState, action: Action): AppState {
         },
         local: {
           ...state.local,
-          draft: { photo: null, status: 'studying', recipientIds: defaultRecipient ? [defaultRecipient] : [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
+          draft: { photo: null, status: null, recipientIds: defaultRecipient ? [defaultRecipient] : [], circleIds: [], caption: '', isQuiet: false, sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null },
         },
       };
     }
@@ -477,7 +477,7 @@ type AppActions = {
   copyInvite: () => Promise<void>;
   setDraftPhoto: (photo: DraftPhoto) => void;
   clearDraftPhoto: () => void;
-  setDraftStatus: (status: UpdateStatus) => void;
+  setDraftStatus: (status: UpdateStatus | null) => void;
   toggleDraftRecipient: (userId: UserId) => void;
   setDraftRecipients: (userIds: UserId[]) => void;
   setDraftCircles: (circleIds: string[]) => void;
@@ -1078,7 +1078,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           recipientIds,
           circleIds,
           caption: draft.caption,
-          statusText: statusDetails[draft.status].label,
+          statusText: draft.status ? statusDetails[draft.status].label : null,
           isQuiet: draft.isQuiet,
           clientRequestId,
         }, (stage) => dispatch({ type: 'DRAFT_STAGE', stage }));
@@ -1279,14 +1279,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     handleNotificationSignal: async (data) => {
       const userId = stateRef.current.server.session?.user.id;
       if (!userId) return;
-      if (data.type === 'moment' || data.type === 'reaction') await loadUpdates(userId);
+      if (data.type === 'moment' || data.type === 'reaction' || data.type === 'comment') await loadUpdates(userId);
       if (data.type === 'connection_request' || data.type === 'connection_accepted') await refreshAuthoritative(userId);
       else await loadActivity(userId, stateRef.current.server.connections);
     },
     prepareNotificationRoute: async (data) => {
       const userId = stateRef.current.server.session?.user.id;
       if (!userId) return false;
-      if (data.type === 'moment' || data.type === 'reaction') {
+      if (data.type === 'moment' || data.type === 'reaction' || data.type === 'comment') {
         const visible = await updateQueries.isVisible(data.updateId);
         if (!visible) {
           dispatch({ type: 'SERVER_MESSAGE', message: 'This moment is no longer available.' });

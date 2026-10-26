@@ -72,6 +72,7 @@ type NotificationPreferencesRow = {
   moments: boolean;
   nudges: boolean;
   reactions: boolean;
+  comments: boolean;
   connections: boolean;
   created_at: string;
   updated_at: string;
@@ -252,6 +253,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      list_comment_notifications: { Args: { p_before_created_at?: string; p_limit?: number }; Returns: { id: string; update_id: string; user_id: string; created_at: string; display_name: string; username: string; avatar_path: string | null }[] };
       list_moment_comments: { Args: { p_update_id: string; p_before_created_at?: string; p_before_id?: string; p_limit?: number }; Returns: MomentCommentWithAuthor[] };
       add_moment_comment: { Args: { p_update_id: string; p_body: string; p_id: string }; Returns: string };
       delete_moment_comment: { Args: { p_update_id: string; p_id: string }; Returns: boolean };
