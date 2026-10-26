@@ -1,4 +1,4 @@
-# Watchu Doin? Privacy Policy
+# watchudoin? Privacy Policy
 
 Effective: September 25, 2026
 
@@ -30,6 +30,8 @@ Data is encrypted in transit. Moment photos are stored in a private bucket and d
 ## Retention
 
 Moments expire from active product views after 24 hours. The production cleanup policy is to remove expired photo files, associated moment records, and their comments 30 days after upload. Users can also delete their own comments while they can access the moment. Safety reports may be retained longer where needed to investigate abuse or meet legal obligations. Account deletion removes user-associated data and stored photos as described below.
+
+Photos you choose to save to your device include a small watchudoin? watermark. Copies in your gallery are controlled by you and are not deleted by the app's cloud retention cleanup.
 
 ## Your controls
 
