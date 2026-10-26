@@ -27,6 +27,8 @@ const updateErrors: Record<string, string> = {
   circle_member_required: 'Join this circle and wait for host approval before sharing.',
   terms_required: 'Accept the current Terms of Use before sharing a moment.',
   blocked_relationship: 'You cannot share a moment with this person.',
+  moment_delete_forbidden: 'You can only delete your own moments.',
+  moment_photo_delete_required: 'The photo could not be removed. Please try deleting again.',
   request_id_required: 'This draft could not be prepared. Retake the photo and try again.',
 };
 
@@ -94,5 +96,23 @@ export const updateService = {
     const { data, error } = await getSupabase().rpc('mark_update_seen', { p_update_id: updateId });
     if (error) throw mapUpdateError(error);
     return data;
+  },
+
+  async deleteOwn(updateId: string, expectedUserId: string) {
+    const client = getSupabase();
+    const assertAccount = async () => {
+      const { data } = await client.auth.getSession();
+      if (data.session?.user.id !== expectedUserId) throw new ServiceError('Sign in again before deleting this moment.', 'auth_required');
+    };
+    await assertAccount();
+    const { data: row, error } = await client.from('updates').select('id,sender_id,photo_path').eq('id', updateId).maybeSingle();
+    if (error) throw mapUpdateError(error);
+    if (!row) return;
+    if (row.sender_id !== expectedUserId) throw new ServiceError(updateErrors.moment_delete_forbidden, 'moment_delete_forbidden');
+    await photoService.remove(row.photo_path);
+    await assertAccount();
+    const { error: deleteError } = await client.rpc('delete_own_moment', { p_update_id: updateId });
+    if (deleteError) throw mapUpdateError(deleteError);
+    await assertAccount();
   },
 };

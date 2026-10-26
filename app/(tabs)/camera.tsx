@@ -156,7 +156,7 @@ export default function CameraRoute() {
       <View style={styles.topBar}>
         <Pressable accessibilityLabel="Close camera" accessibilityRole="button" style={styles.control} onPress={() => router.replace('/(tabs)/people')}><MaterialIcons name="close" color="white" size={25} /></Pressable>
         <View style={{ flex: 1 }} />
-        <Pressable accessibilityRole="button" accessibilityLabel={'Flash: ' + flash + '. Tap to change.'} onPress={() => setFlash(value => value === 'off' ? 'on' : value === 'on' ? 'auto' : 'off')} style={styles.control}><MaterialIcons name={flash === 'off' ? 'flash-off' : flash === 'auto' ? 'flash-auto' : 'flash-on'} size={23} color="white" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={'Flash: ' + flash + '. Tap to change.'} disabled={working} onPress={() => { if (!working) setFlash(value => value === 'off' ? 'on' : value === 'on' ? 'auto' : 'off'); }} style={styles.control}><MaterialIcons name={flash === 'off' ? 'flash-off' : flash === 'auto' ? 'flash-auto' : 'flash-on'} size={23} color={flash === 'off' ? 'white' : '#FFE29A'} /></Pressable>
         <Pressable accessibilityLabel="Flip camera" accessibilityRole="button" disabled={working} style={styles.control} onPress={flipCamera}>
           <MaterialIcons name="flip-camera-android" size={23} color="white" />
         </Pressable>
@@ -167,6 +167,7 @@ export default function CameraRoute() {
             active={focused && appActive}
             facing={facing}
             flash={flash}
+            enableTorch={flash === 'on' && facing === 'back' && focused && appActive}
             zoom={zoom}
             mode="picture"
             onCameraReady={() => setReady(true)}

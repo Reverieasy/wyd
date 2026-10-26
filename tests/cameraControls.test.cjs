@@ -26,8 +26,8 @@ function harness() {
   const output = ts.transpileModule(fs.readFileSync('app/(tabs)/camera.tsx', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, require: id => Object.hasOwn(mocks, id) ? mocks[id] : require(id) });
   const render = () => { position = 0; refPosition = 0; return module.exports.default(); };
-  render(); focus();
-  return { render };
+  render(); const blur = focus();
+  return { render, blur };
 }
 function nodes(node) { return !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)]; }
 const find = (tree, label) => nodes(tree).find(node => node.props?.accessibilityLabel === label);
@@ -51,4 +51,26 @@ test('the camera cannot switch lenses during a capture', () => {
   assert.equal(find(tree, 'Flip camera beside shutter').props.disabled, true);
   find(tree, 'Flip camera beside shutter').props.onPress(); tree = h.render();
   assert.equal(nodes(tree).find(n => n.type === 'CameraView').props.facing, 'back');
+});
+
+test('rear Flash On keeps the preview torch on; Off and Auto do not', () => {
+  const h = harness(); let tree = h.render();
+  const camera = () => nodes(tree).find(n => n.type === 'CameraView');
+  assert.equal(camera().props.enableTorch, false);
+  find(tree, 'Flash: off. Tap to change.').props.onPress(); tree = h.render();
+  assert.equal(camera().props.enableTorch, true);
+  assert.equal(camera().props.flash, 'on');
+  find(tree, 'Flash: on. Tap to change.').props.onPress(); tree = h.render();
+  assert.equal(camera().props.enableTorch, false);
+  assert.equal(camera().props.flash, 'auto');
+  find(tree, 'Flash: auto. Tap to change.').props.onPress(); tree = h.render();
+  assert.equal(camera().props.enableTorch, false);
+});
+test('switching to the front or leaving the camera stops the rear preview light', () => {
+  const h = harness(); let tree = h.render();
+  find(tree, 'Flash: off. Tap to change.').props.onPress(); tree = h.render();
+  find(tree, 'Flip camera').props.onPress(); tree = h.render();
+  assert.equal(nodes(tree).find(n => n.type === 'CameraView').props.enableTorch, false);
+  h.blur(); tree = h.render();
+  assert.equal(nodes(tree).some(n => n.type === 'CameraView'), false);
 });

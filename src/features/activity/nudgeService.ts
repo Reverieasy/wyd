@@ -6,7 +6,7 @@ const messages: Record<string, string> = {
   AUTH_REQUIRED: 'Sign in again to send a nudge.',
   nudge_invalid_recipient: 'Choose someone else to nudge.',
   nudge_not_connected: 'You can only nudge an accepted connection.',
-  nudge_cooldown: 'You nudged them recently. Try again in a few minutes.',
+  nudge_cooldown: 'You nudged them recently. Wait 10 seconds between nudges.',
   nudge_not_found: 'That nudge is no longer available.',
   nudge_not_pending: 'That nudge has already been answered.',
   nudge_response_invalid: 'Send this moment to the person who nudged you.',

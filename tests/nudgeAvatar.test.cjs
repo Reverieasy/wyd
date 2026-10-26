@@ -91,3 +91,12 @@ test('reduced motion skips enlargement while retaining the 3 second hold require
   h.render().props.onPressIn(); assert.equal(h.lift(), 0); h.advance(2999); assert.equal(sends, 0);
   h.advance(1); assert.equal(sends, 1);
 });
+
+test('compact list avatars omit the name and hold hint while retaining the nudge gesture', () => {
+  let sends = 0; const h = harness(async () => { sends++; return true; });
+  h.props.variant = 'compact'; h.props.size = 40;
+  const tree = h.render();
+  assert.equal(tree.props.children[0].props.style.height, 50);
+  assert.equal(tree.props.children[1], null);
+  tree.props.onPressIn(); h.advance(3000); assert.equal(sends, 1);
+});

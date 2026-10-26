@@ -12,6 +12,7 @@ import { isMomentRetained, MOMENT_RETENTION_MS } from '@/src/features/updates/mo
 import { MomentComments } from '@/src/components/MomentComments';
 import { BrandWordmark } from '@/src/components/BrandWordmark';
 import { FullScreenMomentPhoto } from '@/src/components/FullScreenMomentPhoto';
+import { DeleteMomentDialog } from '@/src/components/DeleteMomentDialog';
 import { PhotoDownloadButton } from '@/src/components/PhotoDownloadButton';
 
 export default function MomentDetailRoute() {
@@ -20,6 +21,7 @@ export default function MomentDetailRoute() {
   const { state, actions } = useAppStore();
   const [checked, setChecked] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [fullPhoto, setFullPhoto] = useState(false);
   const [photoAspect, setPhotoAspect] = useState(1.44);
   const pageScroll = useRef<ScrollView>(null);
@@ -91,7 +93,7 @@ export default function MomentDetailRoute() {
         <View style={{ gap: 10 }}>
           <View style={{ position: 'relative' }}><Pressable accessibilityRole="button" accessibilityLabel="Open full photo" onPress={() => setFullPhoto(true)}><MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} contentFit="contain" radius={18} style={{ aspectRatio: photoAspect }} onSize={(width, height) => { if (width && height) setPhotoAspect(Math.max(0.3, Math.min(3, width / height))); }} onLoadError={refreshExpiredPhoto} /><View pointerEvents="none" style={styles.expandPhoto}><Feather name="maximize-2" color="white" size={17} /></View></Pressable><View style={styles.photoDownload}><PhotoDownloadButton overlay updateId={visibleUpdate.id} /></View></View>
           <View style={styles.metadata}>
-            <View style={styles.authorRow}><View><Avatar name={visibleUpdate.sender.displayName} uri={visibleUpdate.sender.avatarUrl ?? undefined} size={44} />{visibleUpdate.senderId === profileId ? <View accessible={false} style={styles.avatarDot} /> : null}</View><View style={{ flex: 1, gap: 3 }}><AppText style={styles.author}><AppText style={styles.title}>{visibleUpdate.senderId === profileId ? 'You' : visibleUpdate.sender.displayName}</AppText> · {visibleUpdate.statusText ?? 'Moment'}</AppText><AppText style={styles.time}>{relativeTime(visibleUpdate.createdAt)} ago</AppText></View></View>
+            <View style={styles.authorRow}><View><Avatar name={visibleUpdate.sender.displayName} uri={visibleUpdate.sender.avatarUrl ?? undefined} size={44} />{visibleUpdate.senderId === profileId ? <View accessible={false} style={styles.avatarDot} /> : null}</View><View style={{ flex: 1, gap: 3 }}><AppText style={styles.author}><AppText style={styles.title}>{visibleUpdate.senderId === profileId ? 'You' : visibleUpdate.sender.displayName}</AppText> · {visibleUpdate.statusText ?? 'Moment'}</AppText><AppText style={styles.time}>{relativeTime(visibleUpdate.createdAt)} ago</AppText></View>{visibleUpdate.senderId === profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Delete your moment" onPress={() => setDeleteId(visibleUpdate.id)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Feather name="trash-2" color="#C85C6A" size={20} /></Pressable> : null}</View>
             {visibleUpdate.caption ? <AppText variant="body14">{visibleUpdate.caption}</AppText> : null}
             {profileId && visibleUpdate.senderId !== profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Report moment" onPress={() => router.push({ pathname: '/(flows)/report', params: { updateId: visibleUpdate.id, userId: visibleUpdate.senderId, name: visibleUpdate.sender.displayName } })} style={styles.report}><AppText variant="caption11" tone="secondary">Report moment</AppText></Pressable> : null}
             {profileId ? (
@@ -109,6 +111,7 @@ export default function MomentDetailRoute() {
           {state.server.error ? <View style={{ gap: 8 }}><AppText accessibilityRole="alert" style={{ color: '#FCA5A5' }}>{state.server.error}</AppText>{!state.server.termsStatus?.acceptedAt ? <ActionButton label="Review Terms" onPress={() => router.push('/(flows)/terms')} /> : null}</View> : null}
         </View>
       ) : null}
+      <DeleteMomentDialog updateId={deleteId} onCancel={() => setDeleteId(null)} onDeleted={() => { setDeleteId(null); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/moments'); }} />
     </Screen>
   );
 }

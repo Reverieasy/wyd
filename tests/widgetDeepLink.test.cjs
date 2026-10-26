@@ -43,6 +43,7 @@ test('opening a widget photo on a cold launch waits for the signed-in profile be
     '@/src/components/MomentComments': { MomentComments: 'MomentComments' },
     '@/src/components/FullScreenMomentPhoto': { FullScreenMomentPhoto: 'FullScreenMomentPhoto' },
     '@/src/components/PhotoDownloadButton': { PhotoDownloadButton: 'PhotoDownloadButton' },
+    '@/src/components/DeleteMomentDialog': { DeleteMomentDialog: 'DeleteMomentDialog' },
     '@/src/theme/ThemeProvider': { useThemeStyles: factory => { const colors = { background: { app: '#fff' }, border: {}, text: {} }; return { colors, styles: factory({ colors }) }; } },
   };
   const output = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../app/(flows)/moment/[id].tsx'), 'utf8'), {

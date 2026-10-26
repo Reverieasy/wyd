@@ -9,6 +9,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { ActionButton, AppText, MomentPhoto } from '@/src/components';
 import { useAppStore } from '@/src/state/appStore';
 import { isMomentRetained } from '@/src/features/updates/momentRetention';
+import { DeleteMomentDialog } from '@/src/components/DeleteMomentDialog';
 import { PhotoDownloadButton } from '@/src/components/PhotoDownloadButton';
 
 function dayLabel(value: string) {
@@ -24,6 +25,7 @@ export default function MomentsRoute() {
   const refresh = useRef(actions.refreshUpdates); refresh.current = actions.refreshUpdates;
   const photoRetries = useRef(new Set<string>());
   const [now, setNow] = useState(Date.now());
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [optionsId, setOptionsId] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
     setNow(Date.now()); void refresh.current();
@@ -50,7 +52,7 @@ export default function MomentsRoute() {
     ListEmptyComponent={<AppText tone="secondary" style={styles.empty}>{state.server.updatesLoading ? 'Loading moments…' : 'Your moments will find a little home here.'}</AppText>}
     ListFooterComponent={<View style={styles.footer}>{state.server.updatesError ? <AppText accessibilityRole="alert" style={styles.error}>{state.server.updatesError}</AppText> : null}{state.server.updatesHasMore ? <ActionButton label="Load older moments" loading={state.server.updatesLoadingMore} variant="secondary" onPress={() => void actions.loadMoreUpdates()} /> : null}<AppText style={styles.retention}>Shared moments leave Home after 24 hours. All moment photos are permanently deleted after 30 days.</AppText></View>}
     onEndReached={() => { if (!state.server.updatesLoading && !state.server.updatesError) void actions.loadMoreUpdates(); }} onEndReachedThreshold={0.4} refreshing={state.server.updatesLoading} onRefresh={() => void actions.refreshUpdates()} showsVerticalScrollIndicator={false}
-  /><Modal transparent visible={!!optionsId} animationType="none" onRequestClose={() => setOptionsId(null)}><View style={styles.backdrop}><View accessibilityViewIsModal style={styles.optionsCard}><AppText variant="title20">Your moment</AppText>{optionsId ? <PhotoDownloadButton updateId={optionsId} /> : null}<ActionButton label="View photo and comments" onPress={() => { if (optionsId) open(optionsId); }} /><ActionButton label="Cancel" variant="secondary" onPress={() => setOptionsId(null)} /></View></View></Modal></SafeAreaView>;
+  /><Modal transparent visible={!!optionsId} animationType="none" onRequestClose={() => setOptionsId(null)}><View style={styles.backdrop}><View accessibilityViewIsModal style={styles.optionsCard}><AppText variant="title20">Your moment</AppText>{optionsId ? <PhotoDownloadButton updateId={optionsId} /> : null}<ActionButton label="View photo and comments" onPress={() => { if (optionsId) open(optionsId); }} /><ActionButton label="Delete moment" variant="secondary" icon={<Feather name="trash-2" color="#C85C6A" size={18} />} onPress={() => { setDeleteId(optionsId); setOptionsId(null); }} /><ActionButton label="Cancel" variant="secondary" onPress={() => setOptionsId(null)} /></View></View></Modal><DeleteMomentDialog updateId={deleteId} onCancel={() => setDeleteId(null)} onDeleted={() => setDeleteId(null)} /></SafeAreaView>;
 }
 const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
   safe: { backgroundColor: isDark ? colors.background.app : '#FFFEFC', flex: 1 }, content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, flexGrow: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },

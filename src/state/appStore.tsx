@@ -149,6 +149,7 @@ type Action =
   | { type: 'DRAFT_REQUEST_ID'; id: string }
   | { type: 'DRAFT_ERROR'; error: string | null }
   | { type: 'UPDATE_SENT'; update: MomentUpdate }
+  | { type: 'UPDATE_DELETED'; userId: string; updateId: string }
   | { type: 'SET_PREFERENCE'; key: keyof Preferences; value: Preferences[keyof Preferences] };
 
 const initialState: AppState = {
@@ -228,6 +229,7 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'RECOVERY_ACTIVE': return { ...state, server: { ...state.server, recoveryActive: action.active } };
     case 'SINGLE_UPDATE_LOADED': return state.server.session?.user.id !== action.userId ? state : { ...state, server: { ...state.server, updates: [...state.server.updates.filter(item => item.id !== action.updateId), ...(action.update ? [action.update] : [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)) } };
+    case 'UPDATE_DELETED': return state.server.session?.user.id !== action.userId ? state : { ...state, server: { ...state.server, updates: state.server.updates.filter(item => item.id !== action.updateId), activity: state.server.activity.filter(item => item.updateId !== action.updateId), reactions: state.server.reactions.filter(item => item.updateId !== action.updateId) } };
     case 'SERVER_BUSY': return { ...state, server: { ...state.server, busy: action.busy } };
     case 'SERVER_ERROR': return { ...state, server: { ...state.server, error: action.error, busy: false, initializing: false } };
     case 'SERVER_MESSAGE': return { ...state, server: { ...state.server, message: action.message } };
@@ -489,6 +491,7 @@ type AppActions = {
   prepareNudgeResponse: (nudgeId: string, senderId: UserId) => void;
   markNudgeSeen: (nudgeId: string) => Promise<void>;
   reactToUpdate: (updateId: string, reaction: ReactionType) => Promise<boolean>;
+  deleteMoment: (updateId: string) => Promise<void>;
   markUpdateSeen: (updateId: string) => Promise<void>;
   setPreference: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
   enableNotifications: () => Promise<void>;
@@ -506,6 +509,7 @@ const notificationPromptKey = (userId: string) => `watchu-doin:notification-prom
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const sendingRef = useRef(false);
+  const deletedMomentsRef = useRef(new Set<string>());
   const stateRef = useRef(state);
   const realtimeTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   stateRef.current = state;
@@ -525,7 +529,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATES_LOADING', userId, append });
     try {
       const page = await updateQueries.listVisible(userId, append ? stateRef.current.server.updatesCursor : null);
-      dispatch({ type: 'UPDATES_LOADED', userId, updates: page.updates, append, cursor: page.cursor, hasMore: page.hasMore });
+      dispatch({ type: 'UPDATES_LOADED', userId, updates: page.updates.filter(item => !deletedMomentsRef.current.has(`${userId}:${item.id}`)), append, cursor: page.cursor, hasMore: page.hasMore });
     } catch (error) {
       if (await clearInvalidSession(error)) return;
       dispatch({ type: 'UPDATES_ERROR', userId, error: readableServiceError(error).message });
@@ -537,7 +541,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'ACTIVITY_LOADING', userId, append });
     try {
       const snapshot = await activityService.list(userId, connections, append ? stateRef.current.server.activityCursor : null);
-      dispatch({ type: 'ACTIVITY_LOADED', userId, activity: snapshot.items, nudges: snapshot.nudges, reactions: snapshot.reactions, readAt: snapshot.lastReadAt, append, cursor: snapshot.cursor, hasMore: snapshot.hasMore });
+      dispatch({ type: 'ACTIVITY_LOADED', userId, activity: snapshot.items.filter(item => !item.updateId || !deletedMomentsRef.current.has(`${userId}:${item.updateId}`)), nudges: snapshot.nudges, reactions: snapshot.reactions, readAt: snapshot.lastReadAt, append, cursor: snapshot.cursor, hasMore: snapshot.hasMore });
     } catch (error) {
       if (await clearInvalidSession(error)) return;
       dispatch({ type: 'ACTIVITY_ERROR', userId, error: readableServiceError(error).message });
@@ -742,7 +746,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     refreshUpdate: async (id) => {
       const userId = stateRef.current.server.profile?.id;
       if (!userId) return;
-      try { const update = await updateQueries.getVisibleById(userId, id); dispatch({ type: 'SINGLE_UPDATE_LOADED', userId, updateId: id, update }); }
+      try { const update = await updateQueries.getVisibleById(userId, id); dispatch({ type: 'SINGLE_UPDATE_LOADED', userId, updateId: id, update: deletedMomentsRef.current.has(`${userId}:${id}`) ? null : update }); }
       catch (error) { dispatch({ type: 'UPDATES_ERROR', userId, error: readableServiceError(error).message }); }
     },
     completeOnboarding: () => dispatch({ type: 'COMPLETE_ONBOARDING' }),
@@ -1186,6 +1190,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         dispatch({ type: 'ACTIVITY_ERROR', userId: profileId, error: nudgeService.errorMessage(error) });
       }
+    },
+    deleteMoment: async (updateId) => {
+      const userId = stateRef.current.server.session?.user.id;
+      if (!userId) throw new ServiceError('Sign in again before deleting this moment.', 'auth_required');
+      await updateService.deleteOwn(updateId, userId);
+      if (stateRef.current.server.session?.user.id !== userId) throw new ServiceError('Your account changed. Please try again.', 'auth_changed');
+      deletedMomentsRef.current.add(`${userId}:${updateId}`);
+      dispatch({ type: 'UPDATE_DELETED', userId, updateId });
+      void loadUpdates(userId);
+      void loadActivity(userId, stateRef.current.server.connections);
     },
     reactToUpdate: async (updateId, reactionType) => {
       const profile = state.server.profile;

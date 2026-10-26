@@ -12,7 +12,7 @@ type Props = Pick<ComponentProps<typeof Avatar>, 'name' | 'uri' | 'size' | 'pale
   busy?: boolean;
   onPress?: () => void;
   onNudge: () => Promise<boolean>;
-  variant?: 'default' | 'home';
+  variant?: 'default' | 'home' | 'compact';
 };
 
 // Two clipped semicircles reveal a continuous ring clockwise, using only native transforms.
@@ -103,8 +103,8 @@ export function NudgeAvatar({ name, uri, size = 48, palette, selected, disabled 
     disabled={disabled || busy || sending} onPressIn={start} onPressOut={cancel} onBlur={cancel}
     delayLongPress={NUDGE_HOLD_MS} onLongPress={() => {}}
     onPress={() => { if (!completed.current && !pending.current) onPress?.(); }}
-    style={[styles.button, variant === 'home' && styles.homeButton]} pressRetentionOffset={0}>
-    <View style={{ width: ringSize, height: ringSize + (variant === 'home' ? 6 : 18), alignItems: 'center', justifyContent: 'flex-end' }}>
+    style={[styles.button, variant === 'home' && styles.homeButton, variant === 'compact' && { minWidth: ringSize, maxWidth: ringSize, gap: 0 }]} pressRetentionOffset={0}>
+    <View style={{ width: ringSize, height: ringSize + (variant === 'compact' ? 0 : variant === 'home' ? 6 : 18), alignItems: 'center', justifyContent: 'flex-end' }}>
       <Animated.View style={{ width: ringSize, height: ringSize, alignItems: 'center', justifyContent: 'center', transform: [
         { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, variant === 'home' ? -4 : -10] }) },
         { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, variant === 'home' ? 1.18 : 1.22] }) },
@@ -115,8 +115,8 @@ export function NudgeAvatar({ name, uri, size = 48, palette, selected, disabled 
       {sending || busy ? <View pointerEvents="none" style={[styles.badge, { backgroundColor: colors.background.card }]}><ActivityIndicator size="small" color={colors.background.accent} /></View> : sent ? <View pointerEvents="none" style={styles.badge}><AppText style={styles.check}>✓</AppText></View> : null}
       </Animated.View>
     </View>
-    <AppText numberOfLines={1} style={[styles.name, variant === 'home' && styles.homeName]}>{name}</AppText>
-    <AppText accessibilityLiveRegion="polite" style={[styles.hint, variant === 'home' && styles.homeHint]}>{sending || busy ? 'Sending…' : sent ? 'Nudged!' : holding ? 'Keep holding' : failed ? 'Try again' : 'Hold to nudge'}</AppText>
+    {variant !== 'compact' ? <><AppText numberOfLines={1} style={[styles.name, variant === 'home' && styles.homeName]}>{name}</AppText>
+    <AppText accessibilityLiveRegion="polite" style={[styles.hint, variant === 'home' && styles.homeHint]}>{sending || busy ? 'Sending…' : sent ? 'Nudged!' : holding ? 'Keep holding' : failed ? 'Try again' : 'Hold to nudge'}</AppText></> : null}
   </Pressable>;
 }
 
