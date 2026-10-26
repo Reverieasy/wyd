@@ -1,6 +1,6 @@
 # Moment comments
 
-Users can open a moment from Home or Moments to read and write comments. The thread uses profile avatars, message bubbles, and an icon-only send button. Their own bubbles align right; other people's bubbles align left. Older messages load above the conversation. Refresh fetches new comments. New comments from other people alert the moment owner in Activity and in foreground popups, respecting their Comments notification preference. Background phone push is not configured in this build.
+Users can open a moment from Home or Moments to read and write comments. The thread uses profile avatars, message bubbles, and an icon-only send button. Their own bubbles align right; other people's bubbles align left. Older messages load above the conversation. Refresh fetches new comments. New comments from other people alert the moment owner in Activity and in foreground popups, respecting their Comments notification preference. Android background push is configured in preview 1.0.3 using Expo and Firebase; it requires the updated native build and phone notification permission.
 
 The latest visual update uses rounded white cards, lavender bubbles, and a purple gradient send control. The detail header has the rounded Nunito wordmark with a purple “doin?” accent, shared with Home and login loading. Corner option menus and the photo settings overlay are removed; reporting another person's moment remains available as a text action. Comments remain text-only, as requested.
 
