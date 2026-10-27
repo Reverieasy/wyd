@@ -1,6 +1,6 @@
 {
   "name": "wyd",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/nunito": "0.4.2",
@@ -51,7 +51,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "push:check": "node scripts/check-push-setup.cjs"
+    "push:check": "node scripts/check-push-setup.cjs",
+    "assets:brand": "node scripts/build-brand-assets.cjs"
   },
   "private": true
 }

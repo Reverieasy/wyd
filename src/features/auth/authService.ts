@@ -3,6 +3,7 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import { getSupabase } from '@/src/lib/supabase';
 import { ServiceError, readableServiceError } from '@/src/lib/serviceError';
+import { authRedirectUrl } from './authRedirects';
 
 export type SignUpInput = {
   email: string;
@@ -27,7 +28,7 @@ function authError(error: { message: string; code?: string | null }) {
 
 export const authService = {
   async requestPasswordReset(email: string) {
-    const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: 'watchudoin://reset-password' });
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: authRedirectUrl('reset-password') });
     if (error) throw authError(error);
   },
 
@@ -65,7 +66,7 @@ export const authService = {
           username: input.username.trim().toLowerCase(),
           display_name: input.username.trim().toLowerCase(),
         },
-        emailRedirectTo: EMAIL_CONFIRM_REDIRECT,
+        emailRedirectTo: authRedirectUrl('email-confirmed'),
       },
     });
     if (error) throw authError(error);
@@ -79,7 +80,7 @@ export const authService = {
     const { error } = await getSupabase().auth.resend({
       type: 'signup',
       email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT },
+      options: { emailRedirectTo: authRedirectUrl('email-confirmed') },
     });
     if (error) throw authError(error);
   },

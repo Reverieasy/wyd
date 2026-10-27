@@ -2,7 +2,7 @@
   "expo": {
     "name": "watchudoin?",
     "slug": "wyd",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "scheme": "watchudoin",
     "icon": "./assets/app-icon-safe.png",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.watchudoin.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/app-icon-safe.png"
@@ -30,7 +30,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 180,
+          "imageWidth": 220,
           "resizeMode": "contain",
           "backgroundColor": "#141119"
         }
@@ -43,8 +43,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/android-icon-monochrome.png",
-          "color": "#6C56C7",
+          "icon": "./assets/notification-icon.png",
+          "color": "#6C2CF5",
           "defaultChannel": "watchudoin-updates"
         }
       ],

@@ -1,10 +1,10 @@
 import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { radii, spacing } from '@/src/theme';
 import { ActionButton } from './ActionButton';
 import { AppText } from './primitives/AppText';
+import { BrandLogo } from './BrandLogo';
 
 type Props = {
   visible: boolean;
@@ -20,7 +20,7 @@ export function NotificationPermissionPrompt({ visible, loading = false, onEnabl
       <View style={styles.backdrop}>
         <View accessibilityViewIsModal style={styles.dialog}>
           <View style={styles.icon}>
-            <MaterialIcons color={colors.background.accent} name="notifications-none" size={30} />
+            <BrandLogo size={74} />
           </View>
           <View style={styles.copy}>
             <AppText variant="title24" style={styles.center}>Stay in the loop</AppText>

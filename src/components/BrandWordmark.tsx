@@ -2,10 +2,11 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '@/src/theme/ThemeProvider';
 import { GradientText } from './GradientText';
 
-export function BrandWordmark({ size = 22, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
-  const { colors, isDark } = useTheme();
+export function BrandWordmark({ size = 22, style, appearance }: { size?: number; style?: StyleProp<ViewStyle>; appearance?: 'light' | 'dark' }) {
+  const theme = useTheme();
+  const isDark = appearance ? appearance === 'dark' : theme.isDark;
   const text = { fontFamily: 'Nunito_900Black', fontSize: size, lineHeight: size * 1.5, letterSpacing: -size * 0.025 };
-  const ink = isDark ? colors.text.primary : '#150B32';
+  const ink = isDark ? '#F5EFFB' : '#150B32';
   // A single text run joins the two words without a reserved inter-word gap.
   return <View accessible accessibilityRole="text" accessibilityLabel="watchudoin?" style={[styles.row, { width: size * 6.2, height: size * 1.5 }, style]}>
     <GradientText numberOfLines={1} allowFontScaling={false} gradientColors={[ink, ink, '#AC6BFF', '#9556FA']} gradientLocations={[0, 0.63, 0.64, 1]} style={[text, { width: size * 5.55, textAlign: 'right' }]}>watchudoin</GradientText>

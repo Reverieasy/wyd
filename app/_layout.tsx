@@ -11,6 +11,7 @@ import { router, Stack, ThemeProvider as NavigationThemeProvider, DarkTheme, Def
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { NotificationPermissionPrompt } from '@/src/components/NotificationPermissionPrompt';
 import { ForegroundNotificationBanner } from '@/src/components/ForegroundNotificationBanner';
@@ -24,6 +25,9 @@ import { AppStoreProvider, useAppStore } from '@/src/state/appStore';
 
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeProvider';
 import { setWindowBackground } from '@/src/theme/windowBackground';
+import { BootPlaceholder, StartupSplash } from '@/src/components/StartupSplash';
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 type PendingNotification = { identifier: string; data: AppNotificationData };
 
@@ -93,6 +97,7 @@ function AppNavigator() {
   const { colors, gradients, styles } = useThemeStyles(makeStyles);
   const { isDark } = useTheme();
   const { state } = useAppStore();
+  const [startupFinished, setStartupFinished] = useState(false);
   const navigationTheme = useMemo(() => {
     const base = isDark ? DarkTheme : DefaultTheme;
     return { ...base, colors: { ...base.colors, background: colors.background.app, card: colors.background.card, text: colors.text.primary, border: colors.border.default, primary: colors.background.accent } };
@@ -134,10 +139,10 @@ function AppNavigator() {
     <NavigationThemeProvider value={navigationTheme}><View style={styles.shell}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ contentStyle: styles.content, headerShown: false, animation: 'none' }} />
-      {!loading ? <ForegroundNotificationBanner /> : null}
-      {!loading ? <WidgetCoordinator /> : null}
-      {!loading ? <CircleInviteCoordinator /> : null}
-      {loading ? (
+      {startupFinished && !loading ? <ForegroundNotificationBanner /> : null}
+      {startupFinished && !loading ? <WidgetCoordinator /> : null}
+      {startupFinished && !loading ? <CircleInviteCoordinator /> : null}
+      {!startupFinished ? <StartupSplash ready={!loading && Boolean(navigationState?.key)} onFinish={() => setStartupFinished(true)} /> : loading ? (
         <View style={[StyleSheet.absoluteFill, styles.loading]}>
           <ActivityIndicator color={colors.background.accent} />
         </View>
@@ -151,7 +156,7 @@ function AppNavigator() {
 function RootContent() {
   const { colors, gradients, styles } = useThemeStyles(makeStyles);
   useLayoutEffect(() => { void setWindowBackground(colors.background.app).catch(() => undefined); }, [colors.background.app]);
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Nunito_900Black: require('@expo-google-fonts/nunito/900Black/Nunito_900Black.ttf'),
     Nunito_800ExtraBold: require('@expo-google-fonts/nunito/800ExtraBold/Nunito_800ExtraBold.ttf'),
     PlusJakartaSans_400Regular,
@@ -161,13 +166,7 @@ function RootContent() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.background.accent} />
-      </View>
-    );
-  }
+  if (!fontsLoaded && !fontError) return <BootPlaceholder />;
 
   return (
     <AppStoreProvider>

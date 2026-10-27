@@ -94,6 +94,7 @@ test('a failed sign-out keeps the confirmation open and allows retry', async () 
 test('auth logout targets only the current session', async () => {
   let options;
   const { authService } = loadSource('src/features/auth/authService.ts', {
+    './authRedirects': { authRedirectUrl: route => `watchudoin://${route}` },
     '@react-native-async-storage/async-storage': { __esModule: true, default: {} },
     '@/src/lib/supabase': { getSupabase: () => ({ auth: { async signOut(value) { options = value; return { error: null }; } } }) },
     '@/src/lib/serviceError': { ServiceError: Error, readableServiceError: error => error },

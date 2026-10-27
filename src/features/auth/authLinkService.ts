@@ -1,4 +1,5 @@
 import { authService } from './authService';
+import { authCallbackRoute, clearAuthCallbackParameters } from './authRedirects';
 
 export type AuthLinkResult =
   | { kind: 'ignored' }
@@ -16,18 +17,14 @@ function callbackParameters(url: URL) {
 
 export const authLinkService = {
   isAuthCallbackUrl(value: string) {
-    try {
-      const url = new URL(value);
-      const route = `${url.hostname}${url.pathname}`.replace(/^\/+|\/+$/g, '');
-      return url.protocol === 'watchudoin:' && (route === 'email-confirmed' || route === 'reset-password');
-    } catch {
-      return false;
-    }
+    return authCallbackRoute(value) !== null;
   },
 
   async handle(value: string): Promise<AuthLinkResult> {
-    if (!this.isAuthCallbackUrl(value)) return { kind: 'ignored' };
-    const recovery = new URL(value).hostname === 'reset-password' || new URL(value).pathname.includes('reset-password');
+    const route = authCallbackRoute(value);
+    if (!route) return { kind: 'ignored' };
+    const recovery = route === 'reset-password';
+    const kind = recovery ? 'password reset' : 'confirmation';
 
     try {
       const url = new URL(value);
@@ -41,8 +38,8 @@ export const authLinkService = {
           kind: 'error',
           recovery,
           message: expired
-            ? 'That confirmation link has expired. Request a new one and try again.'
-            : "We couldn't confirm that link. Request a new one and try again.",
+            ? `That ${kind} link has expired or has already been used. Request a new one and try again.`
+            : `We couldn't verify that ${kind} link. Request a new one and try again.`,
         };
       }
 
@@ -54,10 +51,12 @@ export const authLinkService = {
 
       const session = await authService.setSession(accessToken, refreshToken);
       if (!session) return { kind: 'error', recovery, message: "We couldn't start your session. Please try the link again." };
-      await authService.clearPendingVerificationEmail();
+      await authService.clearPendingVerificationEmail().catch(() => undefined);
       return { kind: 'success', session, recovery };
     } catch {
-      return { kind: 'error', recovery, message: "We couldn't confirm that link. Please request a new one." };
+      return { kind: 'error', recovery, message: `We couldn't verify that ${kind} link. Please request a new one.` };
+    } finally {
+      clearAuthCallbackParameters(value);
     }
   },
 };
