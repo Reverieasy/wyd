@@ -2,7 +2,7 @@
   "expo": {
     "name": "watchudoin?",
     "slug": "wyd",
-    "version": "1.0.5",
+    "version": "1.0.9",
     "orientation": "portrait",
     "scheme": "watchudoin",
     "icon": "./assets/app-icon-safe.png",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.watchudoin.app",
-      "versionCode": 6,
+      "versionCode": 10,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/app-icon-safe.png"
@@ -53,7 +53,7 @@
         {
           "cameraPermission": "Allow watchudoin? to take moment photos.",
           "recordAudioAndroid": false,
-          "barcodeScannerEnabled": false
+          "barcodeScannerEnabled": true
         }
       ],
       [
@@ -68,14 +68,38 @@
         {
           "widgets": [
             {
-              "name": "WydMoment",
-              "label": "Wyd? - Your person",
-              "description": "A photo moment from your close person, with a quick Nudge.",
-              "previewImage": "./assets/widget-preview/wyd-moment.png",
-              "minWidth": "280dp",
-              "minHeight": "145dp",
+              "name": "WydSmall",
+              "label": "watchudoin? - Small",
+              "description": "A photo moment and a camera reply in a compact 2 by 2 widget.",
+              "previewImage": "./assets/widget-preview/wyd-small.png",
+              "minWidth": "130dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "WydMedium",
+              "label": "watchudoin? - Medium",
+              "description": "A photo moment, quick heart, Nudge and camera reply in a 4 by 2 widget.",
+              "previewImage": "./assets/widget-preview/wyd-medium.png",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
               "targetCellWidth": 4,
               "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "WydLarge",
+              "label": "watchudoin? - Large",
+              "description": "A larger photo, quick heart, Nudge and camera reply in a 4 by 3 widget.",
+              "previewImage": "./assets/widget-preview/wyd-large.png",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000
             }
@@ -83,6 +107,7 @@
         }
       ],
       "./plugins/withPrivateWidgetImages",
+      "./plugins/withWidgetFonts",
       [
         "expo-media-library",
         {

@@ -1,7 +1,7 @@
 import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import type { ReactNode, Ref } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, type ScrollViewProps, StyleSheet, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { layout, spacing } from '@/src/theme';
 import { ScreenTransition } from './ScreenTransition';
@@ -19,13 +19,15 @@ type Props = {
 
 export function Screen({ children, scroll = false, dark = false, backgroundColor: customBackground, contentStyle, keyboardShouldPersistTaps, keyboardAvoiding = false, scrollRef }: Props) {
   const { colors, gradients, styles } = useThemeStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const backgroundColor = customBackground ?? (dark ? colors.background.camera : colors.background.app);
+  const keyboardBehavior = Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined;
 
   if (scroll) {
     return (
       <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor }]}>
         <ScreenTransition enabled={!dark}>
-          <KeyboardAvoidingView enabled={keyboardAvoiding} behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+          <KeyboardAvoidingView enabled={keyboardAvoiding} behavior={keyboardBehavior} keyboardVerticalOffset={insets.top} style={styles.safe}>
           <ScrollView
             ref={scrollRef}
             automaticallyAdjustKeyboardInsets={!keyboardAvoiding && Platform.OS === 'ios'}
@@ -47,7 +49,9 @@ export function Screen({ children, scroll = false, dark = false, backgroundColor
       edges={['top', 'bottom']}
       style={[styles.safe, { backgroundColor }]}
     >
-      <ScreenTransition enabled={!dark} style={[styles.content, contentStyle]}>{children}</ScreenTransition>
+      <KeyboardAvoidingView enabled={keyboardAvoiding} behavior={keyboardBehavior} keyboardVerticalOffset={insets.top} style={styles.safe}>
+        <ScreenTransition enabled={!dark} style={[styles.content, contentStyle]}>{children}</ScreenTransition>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

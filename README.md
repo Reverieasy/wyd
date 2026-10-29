@@ -1,6 +1,6 @@
-# Wyd? — Watchu Doin?
+# watchudoin?
 
-A private photo-sharing app for staying close to your people. Share a Moment with selected connections, react to what they send, or send a Nudge to check in. Moments expire from active views after 24 hours.
+A private photo-sharing app for staying close to your people. Your last 30 days together: share a Moment with selected connections or circles, react, comment, or send a Nudge. Moments leave active views after 24 hours; stored photos are permanently deleted after 30 days.
 
 ## Features
 
@@ -10,6 +10,9 @@ A private photo-sharing app for staying close to your people. Share a Moment wit
 - Moments, emoji reactions, Nudges, and activity history.
 - Realtime updates and push-notification preferences.
 - Profile editing, blocking, reporting, and account deletion.
+- Outcome-based first steps: find one person, send or receive a first Moment, then add an Android widget.
+- Photo widgets in Small (2 × 2), Medium (4 × 2), and Large (4 × 3), with quick reactions, Nudges, and camera replies. See [widget details](docs/WIDGET_STYLES.md).
+- Eight optional contextual statuses and quiet deletion reminders only during a photo's final 48 hours.
 
 ## Stack
 

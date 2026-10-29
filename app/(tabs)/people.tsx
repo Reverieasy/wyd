@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionButton, AppText, Avatar } from '@/src/components';
 import { CircleFeedCard } from '@/src/components/CircleFeedCard';
 import { BrandWordmark } from '@/src/components/BrandWordmark';
+import { FirstStepsCard } from '@/src/components/FirstStepsCard';
 import { NudgeAvatar } from '@/src/components/NudgeAvatar';
 import { SoftEntrance } from '@/src/components/SoftEntrance';
 import { useCircles } from '@/src/features/circles/useCircles';
@@ -41,6 +42,7 @@ export default function PeopleRoute() {
         {people.map(({ person }, index) => <NudgeAvatar key={person.id} variant="home" size={56} name={person.displayName} uri={person.avatarUrl ?? undefined} palette={index} busy={state.server.nudgeSendingTo === person.id} disabled={state.server.nudgeSendingTo !== null && state.server.nudgeSendingTo !== person.id} onPress={() => router.push({ pathname: '/(flows)/person/[id]', params: { id: person.id } })} onNudge={() => actions.sendNudge(person.id)} />)}
       </ScrollView>
     </View>
+    <FirstStepsCard />
     {state.server.message ? <AppText accessibilityLiveRegion="polite" style={styles.feedback}>{state.server.message}</AppText> : null}
     {state.server.error ? <View style={{ gap: 8 }}><AppText accessibilityRole="alert" style={styles.error}>{state.server.error}</AppText>{!state.server.termsStatus?.acceptedAt ? <ActionButton label="Review Terms" variant="secondary" onPress={() => router.push('/(flows)/terms')} /> : null}</View> : null}
     <View style={{ gap: 8 }}>

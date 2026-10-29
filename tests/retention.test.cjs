@@ -11,7 +11,7 @@ function load(file, mocks = {}, globals = {}) {
   return module.exports;
 }
 const { cleanupExpiredMoments, retentionCutoff } = load('supabase/functions/cleanup-expired-moments/cleanup.ts');
-const { isMomentRetained } = load('src/features/updates/momentRetention.ts');
+const { isMomentRetained, momentDeletionLabel } = load('src/features/updates/momentRetention.ts');
 const now = Date.parse('2026-10-26T08:00:00.000Z');
 const day = 86400000;
 function fixture() {
@@ -44,6 +44,15 @@ test('30-day retention is measured from upload, and hides a moment exactly at it
   assert.equal(isMomentRetained(new Date(now - 30 * day).toISOString(), now), false);
   assert.equal(isMomentRetained(new Date(now - 30 * day + 1).toISOString(), now), true);
   assert.equal(isMomentRetained('invalid', now), false);
+});
+test('deletion reminders appear only in the final 48 hours and disappear at deletion', () => {
+  const createdAt = new Date(now - 28 * day).toISOString();
+  assert.equal(momentDeletionLabel(createdAt, now - 1), null);
+  assert.equal(momentDeletionLabel(createdAt, now), 'Deletes in 2 days');
+  assert.equal(momentDeletionLabel(createdAt, now + day), 'Deletes in 24h');
+  assert.equal(momentDeletionLabel(createdAt, now + 2 * day - 30 * 60_000), 'Deletes in under 1h');
+  assert.equal(momentDeletionLabel(createdAt, now + 2 * day), null);
+  assert.equal(momentDeletionLabel('invalid', now), null);
 });
 test('cleanup removes expired moment files and orphan uploads while preserving younger photos', async () => {
   const { state, admin } = fixture();

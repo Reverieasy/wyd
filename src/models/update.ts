@@ -1,7 +1,7 @@
 import type { User, UserId } from './user';
 import type { Reaction } from './reaction';
 
-export type UpdateStatus = 'studying' | 'chilling' | 'working' | 'home' | 'eating' | 'school' | 'morning';
+export type UpdateStatus = 'studying' | 'chilling' | 'working' | 'home' | 'eating' | 'school' | 'morning' | 'outside' | 'gym' | 'bedtime';
 export type PhotoPalette = 'accent' | 'love' | 'neutral';
 export type PhotoSource = 'camera' | 'library';
 

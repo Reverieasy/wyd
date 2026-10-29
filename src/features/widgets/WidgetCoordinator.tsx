@@ -9,7 +9,7 @@ export function WidgetCoordinator() {
   const { mode } = useTheme();
   const userId = state.server.session?.user.id ?? null;
   const previousUser = useRef(userId);
-  const updateKey = state.server.updates.filter(update => update.senderId !== userId).map(update => `${update.id}:${update.expiresAt}`).join('|');
+  const updateKey = state.server.updates.filter(update => update.senderId !== userId).map(update => `${update.id}:${update.expiresAt}:${update.seenAt}:${update.reactions.find(reaction => reaction.userId === userId)?.type ?? ''}`).join('|');
   const peopleKey = state.server.connections.map(entry => `${entry.person.id}:${entry.connection.status}:${entry.person.displayName}`).join('|');
   useEffect(() => {
     if (!widgetService.isAvailable()) return;

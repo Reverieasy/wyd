@@ -92,6 +92,7 @@ test('preview redirects to Sent instead of flashing the empty-camera screen afte
     '@/src/components': Object.fromEntries(['ActionButton', 'AppText', 'Avatar', 'FlowHeader', 'MomentPhoto', 'Screen', 'StatusChip', 'TextField'].map(name => [name, name])),
     '@/src/theme/ThemeProvider': { useThemeStyles: factory => ({ ...theme, styles: factory(theme) }) },
     '@/src/state/appStore': { statusDetails: { studying: { symbol: '', label: '' }, chilling: { symbol: '', label: '' }, working: { symbol: '', label: '' } }, useAppStore: () => ({ state, actions: { sendDraft: () => network.promise } }) },
+    '@/src/features/updates/momentStatuses': require('../src/features/updates/momentStatuses.ts'),
   };
   const module = { exports: {} };
   const output = ts.transpileModule(fs.readFileSync(path.join(root, 'app/(flows)/preview.tsx'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;

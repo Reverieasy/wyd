@@ -55,7 +55,7 @@ export function ForegroundNotificationBanner() {
 
 export function ForegroundNotificationCard({ item, onOpen, onDismiss }: { item: ActivityItem; onOpen: () => void; onDismiss: () => void }) {
   const { colors, styles } = useThemeStyles(makeStyles);
-  const message = item.kind === 'moment' ? 'Sent you a photo moment' : item.kind === 'comment' ? 'Commented on your moment' : `Reacted ${item.reaction ? reactionEmoji[item.reaction] : '❤️'} to your moment`;
+  const message = item.kind === 'moment' ? 'Sent you a photo moment' : item.kind === 'comment' ? item.commentReply ? 'Replied in the comments' : 'Commented on your moment' : `Reacted ${item.reaction ? reactionEmoji[item.reaction] : '❤️'} to your moment`;
   const eventIcon = item.kind === 'moment' ? 'photo-camera' : item.kind === 'comment' ? 'chat-bubble-outline' : 'favorite-border';
   return <SoftEntrance style={styles.banner}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${item.actor.displayName}: ${message}. Open moment.`} onPress={onOpen} style={styles.body}>

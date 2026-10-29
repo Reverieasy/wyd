@@ -13,6 +13,7 @@ export type ActivityItem = {
   updateId?: string;
   connectionId?: string;
   reaction?: ReactionType;
+  commentReply?: boolean;
   quiet?: boolean;
   nudgeStatus?: 'pending' | 'responded' | 'dismissed';
   nudgeDirection?: 'incoming' | 'outgoing';

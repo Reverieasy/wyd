@@ -7,6 +7,7 @@ type NotificationTarget = {
   actorId: string;
   recipientIds: string[];
   title: string;
+  titlesByRecipient?: Record<string,string>;
   body: string;
   data: Record<string, string>;
   preference: "moments" | "nudges" | "reactions" | "comments" | "connections";
@@ -21,7 +22,7 @@ function response(status: number, body: Record<string, unknown>) {
 }
 
 function reactionSymbol(value: string) {
-  return ({ heart: "❤️", teary: "🥹", laugh: "😂", fire: "🔥", eyes: "👀" } as Record<string, string>)[value] ?? "";
+  return ({ heart: "❤️", teary: "🥹", laugh: "😂", fire: "🔥", eyes: "👀", hug: "🫶", sparkles: "✨" } as Record<string, string>)[value] ?? "";
 }
 
 async function pairIsAllowed(
@@ -123,10 +124,17 @@ Deno.serve(async (request: Request) => {
     const { data: comment, error: commentError } = await admin.from('moment_comments').select('id,update_id,user_id').eq('id', eventId).maybeSingle();
     if (commentError) throw new Error('comment_lookup_failed');
     if (!comment || comment.user_id !== callerId) return response(403, { error: 'event_not_owned' });
-    const { data: update, error: updateError } = await admin.from('updates').select('sender_id').eq('id', comment.update_id).maybeSingle();
-    if (updateError) throw new Error('update_lookup_failed');
-    if (!update) return response(404, { error: 'event_target_missing' });
-    target = { actorId: callerId, recipientIds: update.sender_id === callerId ? [] : [update.sender_id], title: 'commented on your moment', body: 'Open watchudoin? to read it.', data: { type, updateId: comment.update_id, commentId: eventId }, preference: 'comments' };
+    const { data: recipients, error: recipientsError } = await admin.rpc('comment_push_recipients', { p_comment_id: eventId });
+    if (recipientsError) throw new Error('comment_recipients_lookup_failed');
+    target = {
+      actorId: callerId,
+      recipientIds: (recipients ?? []).map((row: { recipient_id: string }) => row.recipient_id),
+      title: 'replied in the comments',
+      titlesByRecipient: Object.fromEntries((recipients ?? []).map((row: { recipient_id: string; is_reply: boolean }) =>
+        [row.recipient_id, row.is_reply ? 'replied in the comments' : 'commented on your moment'])),
+      body: 'Open watchudoin? to read it.',
+      data: { type, updateId: comment.update_id, commentId: eventId }, preference: 'comments',
+    };
   } else if (type === "reaction") {
     const { data: reaction, error: reactionError } = await admin.from("reactions").select("id,update_id,user_id,reaction").eq("id", eventId).maybeSingle();
     if (reactionError) throw new Error("reaction_lookup_failed");
@@ -170,7 +178,8 @@ Deno.serve(async (request: Request) => {
   }
 
   target.recipientIds = [...new Set(target.recipientIds.filter((id) => id !== callerId))];
-  const requireAcceptedConnection = type === "moment" || type === "nudge" || type === "reaction" || type === "comment";
+  // Comment recipients already have both actors' current thread access validated by the RPC.
+  const requireAcceptedConnection = type === "moment" || type === "nudge" || type === "reaction";
   const allowed = await Promise.all(target.recipientIds.map(async (recipientId) => ({
     recipientId,
     allowed: await pairIsAllowed(admin, callerId, recipientId, requireAcceptedConnection,
@@ -195,10 +204,10 @@ Deno.serve(async (request: Request) => {
   const { data: tokens, error: tokenError } = await admin.from("push_tokens").select("id,user_id,expo_push_token").in("user_id", eligibleRecipients).eq("enabled", true);
   if (tokenError) return response(500, { error: "token_lookup_failed" });
 
-  const claims: { deliveryId: string; tokenId: string; token: string }[] = [];
+  const claims: { deliveryId: string; tokenId: string; token: string; recipientId: string }[] = [];
   for (const token of tokens ?? []) {
     const { data: inserted, error: insertError } = await admin.from("notification_deliveries").insert({ event_type: type, event_id: eventId, recipient_id: token.user_id, push_token_id: token.id, attempts: 1, leased_until: new Date(Date.now()+120000).toISOString() }).select("id").maybeSingle();
-    if (!insertError && inserted) { claims.push({ deliveryId: inserted.id, tokenId: token.id, token: token.expo_push_token }); continue; }
+    if (!insertError && inserted) { claims.push({ deliveryId: inserted.id, tokenId: token.id, token: token.expo_push_token, recipientId: token.user_id }); continue; }
     if (insertError?.code !== "23505") throw new Error("delivery_claim_failed");
     const { data: existing, error: lookupError } = await admin.from("notification_deliveries").select("id,status,attempts,leased_until").eq("event_type",type).eq("event_id",eventId).eq("push_token_id",token.id).single();
     if (lookupError) throw new Error("delivery_lookup_failed");
@@ -206,7 +215,7 @@ Deno.serve(async (request: Request) => {
     if ((existing.status === "failed" || (existing.status === "pending" && Date.parse(existing.leased_until ?? "1970-01-01") < Date.now())) && existing.attempts < 5) {
       const { data: reclaimed, error } = await admin.from("notification_deliveries").update({ status:"pending", attempts:existing.attempts+1, leased_until:new Date(Date.now()+120000).toISOString() }).eq("id",existing.id).eq("attempts",existing.attempts).eq("status",existing.status).select("id").maybeSingle();
       if (error) throw new Error("delivery_reclaim_failed");
-      if (reclaimed) claims.push({ deliveryId:reclaimed.id,tokenId:token.id,token:token.expo_push_token });
+      if (reclaimed) claims.push({ deliveryId:reclaimed.id,tokenId:token.id,token:token.expo_push_token,recipientId:token.user_id });
     }
 
   }
@@ -217,7 +226,7 @@ Deno.serve(async (request: Request) => {
     sound: "default",
     channelId: "watchudoin-updates",
     priority: "high",
-    title: type === "connection_accepted" ? `${target.title} with ${actorName}` : `${actorName} ${target.title}`,
+    title: type === "connection_accepted" ? `${target.title} with ${actorName}` : `${actorName} ${target.titlesByRecipient?.[claim.recipientId] ?? target.title}`,
     body: target.body,
     data: target.data,
   }));

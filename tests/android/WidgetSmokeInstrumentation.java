@@ -33,7 +33,7 @@ public class WidgetSmokeInstrumentation extends Instrumentation {
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             AppWidgetProviderInfo provider = null;
             for (AppWidgetProviderInfo candidate : manager.getInstalledProviders()) {
-                if (candidate.provider.getClassName().equals("com.watchudoin.app.widget.WydMoment")) provider = candidate;
+                if (candidate.provider.getClassName().equals("com.watchudoin.app.widget.WydMedium")) provider = candidate;
             }
             if (provider == null) throw new Exception("Widget provider missing from installed APK");
             final AppWidgetProviderInfo info = provider;

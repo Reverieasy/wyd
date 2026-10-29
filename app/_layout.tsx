@@ -15,9 +15,11 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { NotificationPermissionPrompt } from '@/src/components/NotificationPermissionPrompt';
 import { ForegroundNotificationBanner } from '@/src/components/ForegroundNotificationBanner';
+import { FirstFriendCelebration } from '@/src/components/FirstFriendCelebration';
 import { MotionProvider } from '@/src/components/MotionProvider';
 import { WidgetCoordinator } from '@/src/features/widgets/WidgetCoordinator';
 import { CircleInviteCoordinator } from '@/src/features/circles/CircleInviteCoordinator';
+import { PersonQrCoordinator } from '@/src/features/connections/PersonQrCoordinator';
 import { notificationService } from '@/src/features/notifications/notificationService';
 import { navigateForNotification } from '@/src/features/notifications/notificationRouter';
 import type { AppNotificationData } from '@/src/features/notifications/notificationTypes';
@@ -123,7 +125,7 @@ function AppNavigator() {
       return;
     }
     if (!state.server.session) {
-      if (root === 'join-circle') return;
+      if (root === 'join-circle' || root === 'add-person') return;
       if ((root === '(flows)' && (route === 'terms' || route === 'privacy-policy')) || root === 'reset-password') return;
       if (root !== '(onboarding)') router.replace('/(onboarding)/welcome');
       return;
@@ -140,7 +142,9 @@ function AppNavigator() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ contentStyle: styles.content, headerShown: false, animation: 'none' }} />
       {startupFinished && !loading ? <ForegroundNotificationBanner /> : null}
+      {startupFinished && !loading ? <FirstFriendCelebration /> : null}
       {startupFinished && !loading ? <WidgetCoordinator /> : null}
+      {startupFinished && !loading ? <PersonQrCoordinator /> : null}
       {startupFinished && !loading ? <CircleInviteCoordinator /> : null}
       {!startupFinished ? <StartupSplash ready={!loading && Boolean(navigationState?.key)} onFinish={() => setStartupFinished(true)} /> : loading ? (
         <View style={[StyleSheet.absoluteFill, styles.loading]}>

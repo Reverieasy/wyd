@@ -1,14 +1,14 @@
 import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ActionButton, AppText, Avatar, MomentPhoto, ReactionBar, Screen } from '@/src/components';
 import { StatusBar } from 'expo-status-bar';
 import { relativeTime, useAppStore } from '@/src/state/appStore';
 import { spacing } from '@/src/theme';
-import { isMomentRetained, MOMENT_RETENTION_MS } from '@/src/features/updates/momentRetention';
+import { isMomentRetained, momentDeletionLabel, MOMENT_RETENTION_MS } from '@/src/features/updates/momentRetention';
 import { MomentComments } from '@/src/components/MomentComments';
 import { BrandWordmark } from '@/src/components/BrandWordmark';
 import { FullScreenMomentPhoto } from '@/src/components/FullScreenMomentPhoto';
@@ -24,8 +24,6 @@ export default function MomentDetailRoute() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [fullPhoto, setFullPhoto] = useState(false);
   const [photoAspect, setPhotoAspect] = useState(1.44);
-  const pageScroll = useRef<ScrollView>(null);
-  const revealComposer = useCallback(() => pageScroll.current?.scrollToEnd({ animated: false }), []);
   const retriedPhotoRef = useRef(false);
   const seenRequestsRef = useRef(new Set<string>());
   const refreshUpdatesRef = useRef(actions.refreshUpdates);
@@ -61,7 +59,7 @@ export default function MomentDetailRoute() {
     if (!Number.isFinite(deadline)) return;
     const delay = deadline - Date.now();
     if (delay <= 0) { if (now < deadline) setNow(Date.now()); return; }
-    const timer = setTimeout(() => setNow(Date.now()), Math.min(delay + 100, 2_147_483_647));
+    const timer = setTimeout(() => setNow(Date.now()), Math.min(delay + 100, update.senderId === profileId ? 60_000 : 2_147_483_647));
     return () => clearTimeout(timer);
   }, [update?.createdAt, update?.expiresAt, update?.senderId, profileId, now]);
 
@@ -72,7 +70,7 @@ export default function MomentDetailRoute() {
   };
 
   return (
-    <Screen scroll keyboardAvoiding scrollRef={pageScroll} backgroundColor={isDark ? colors.background.app : '#FAF7FF'} keyboardShouldPersistTaps="handled" contentStyle={styles.content}>
+    <Screen keyboardAvoiding backgroundColor={isDark ? colors.background.app : '#FAF7FF'} contentStyle={styles.content}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close moment" style={styles.spacer} onPress={() => router.back()}>
@@ -89,11 +87,13 @@ export default function MomentDetailRoute() {
           <ActionButton label="Go to Moments" onPress={() => router.replace('/(tabs)/moments')} />
         </View>
       ) : null}
-      {visibleUpdate ? (
+      {visibleUpdate && profileId ? (
+        <MomentComments key={`${visibleUpdate.id}:${profileId}`} updateId={visibleUpdate.id} userId={profileId}>
         <View style={{ gap: 10 }}>
           <View style={{ position: 'relative' }}><Pressable accessibilityRole="button" accessibilityLabel="Open full photo" onPress={() => setFullPhoto(true)}><MomentPhoto photo={{ uri: visibleUpdate.photoUrl }} contentFit="contain" radius={18} style={{ aspectRatio: photoAspect }} onSize={(width, height) => { if (width && height) setPhotoAspect(Math.max(0.3, Math.min(3, width / height))); }} onLoadError={refreshExpiredPhoto} /><View pointerEvents="none" style={styles.expandPhoto}><Feather name="maximize-2" color="white" size={17} /></View></Pressable><View style={styles.photoDownload}><PhotoDownloadButton overlay updateId={visibleUpdate.id} /></View></View>
           <View style={styles.metadata}>
             <View style={styles.authorRow}><View><Avatar name={visibleUpdate.sender.displayName} uri={visibleUpdate.sender.avatarUrl ?? undefined} size={44} />{visibleUpdate.senderId === profileId ? <View accessible={false} style={styles.avatarDot} /> : null}</View><View style={{ flex: 1, gap: 3 }}><AppText style={styles.author}><AppText style={styles.title}>{visibleUpdate.senderId === profileId ? 'You' : visibleUpdate.sender.displayName}</AppText> · {visibleUpdate.statusText ?? 'Moment'}</AppText><AppText style={styles.time}>{relativeTime(visibleUpdate.createdAt)} ago</AppText></View>{visibleUpdate.senderId === profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Delete your moment" onPress={() => setDeleteId(visibleUpdate.id)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Feather name="trash-2" color="#C85C6A" size={20} /></Pressable> : null}</View>
+            {visibleUpdate.senderId === profileId && momentDeletionLabel(visibleUpdate.createdAt, now) ? <AppText variant="caption11" tone="secondary">{momentDeletionLabel(visibleUpdate.createdAt, now)} ? Save a copy if you?d like to keep it.</AppText> : null}
             {visibleUpdate.caption ? <AppText variant="body14">{visibleUpdate.caption}</AppText> : null}
             {profileId && visibleUpdate.senderId !== profileId ? <Pressable accessibilityRole="button" accessibilityLabel="Report moment" onPress={() => router.push({ pathname: '/(flows)/report', params: { updateId: visibleUpdate.id, userId: visibleUpdate.senderId, name: visibleUpdate.sender.displayName } })} style={styles.report}><AppText variant="caption11" tone="secondary">Report moment</AppText></Pressable> : null}
             {profileId ? (
@@ -106,10 +106,10 @@ export default function MomentDetailRoute() {
             /></View></View>
             ) : null}
           </View>
-          {profileId ? <MomentComments key={`${visibleUpdate.id}:${profileId}`} updateId={visibleUpdate.id} userId={profileId} onComposerFocus={revealComposer} /> : null}
           <FullScreenMomentPhoto visible={fullPhoto} uri={visibleUpdate.photoUrl} updateId={visibleUpdate.id} onClose={() => setFullPhoto(false)} />
           {state.server.error ? <View style={{ gap: 8 }}><AppText accessibilityRole="alert" style={{ color: '#FCA5A5' }}>{state.server.error}</AppText>{!state.server.termsStatus?.acceptedAt ? <ActionButton label="Review Terms" onPress={() => router.push('/(flows)/terms')} /> : null}</View> : null}
         </View>
+        </MomentComments>
       ) : null}
       <DeleteMomentDialog updateId={deleteId} onCancel={() => setDeleteId(null)} onDeleted={() => { setDeleteId(null); if (router.canGoBack()) router.back(); else router.replace('/(tabs)/moments'); }} />
     </Screen>
@@ -117,7 +117,7 @@ export default function MomentDetailRoute() {
 }
 
 const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: spacing[32], gap: 10, width: '100%', maxWidth: 600, alignSelf: 'center' },
+  content: { flex: 1, minHeight: 0, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 0, gap: 10, width: '100%', maxWidth: 600, alignSelf: 'center' },
   metadata: { padding: 14, gap: 10, backgroundColor: colors.background.card, borderRadius: 20, boxShadow: '0px 5px 20px rgba(116, 66, 192, 0.04)' },
   topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', zIndex: 5 }, wordmark: { flex: 1, alignItems: 'center' },
   title: { fontSize: 14, lineHeight: 21, fontFamily: 'PlusJakartaSans_700Bold', color: isDark ? colors.text.primary : '#150B32' },

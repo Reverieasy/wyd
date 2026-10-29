@@ -3,7 +3,7 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import { getSupabase } from '@/src/lib/supabase';
 import { ServiceError, readableServiceError } from '@/src/lib/serviceError';
-import { authRedirectUrl } from './authRedirects';
+import { authRedirectUrl, EMAIL_CONFIRMATION_WEB_URL } from './authRedirects';
 
 export type SignUpInput = {
   email: string;
@@ -11,7 +11,7 @@ export type SignUpInput = {
   username: string;
 };
 
-export const EMAIL_CONFIRM_REDIRECT = 'watchudoin://email-confirmed';
+export const EMAIL_CONFIRM_REDIRECT = EMAIL_CONFIRMATION_WEB_URL;
 const PENDING_EMAIL_KEY = 'watchudoin.pending-verification-email';
 
 function authError(error: { message: string; code?: string | null }) {

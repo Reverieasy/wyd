@@ -92,7 +92,7 @@ export const activityService = {
 
     const allItems: ActivityItem[] = [
       ...commentsResult.data.map(row => ({
-        id: `comment:${row.id}`, kind: 'comment' as const, updateId: row.update_id, createdAt: row.created_at, read: isRead(row.created_at),
+        id: `comment:${row.id}`, kind: 'comment' as const, updateId: row.update_id, commentReply: row.is_reply === true, createdAt: row.created_at, read: isRead(row.created_at),
         actor: mapProfile({ id: row.user_id, username: row.username, display_name: row.display_name, avatar_path: row.avatar_path, created_at: row.created_at, updated_at: row.created_at, username_changed_at: null }),
       })),
       ...momentsResult.data.filter((update) => update.sender_id !== userId).flatMap((update) => {

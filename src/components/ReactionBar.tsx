@@ -77,6 +77,6 @@ const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
   reaction: { alignItems: 'center', borderRadius: radii.full, flexDirection: 'row', gap: spacing[2], minHeight: 44, minWidth: 44, paddingHorizontal: spacing[8] },
   selected: { backgroundColor: colors.background.accentSoft },
   compactWrap: { position: 'relative', zIndex: 2 }, compactButton: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 44, minWidth: 50 }, compactCount: { color: colors.text.secondary, fontSize: 12 },
-  picker: { position: 'absolute', left: 0, bottom: 48, flexDirection: 'row', padding: 5, gap: 2, borderRadius: 28, backgroundColor: colors.background.card, borderWidth: 1, borderColor: colors.border.default, boxShadow: '0px 4px 18px rgba(30, 16, 55, 0.12)' },
+  picker: { position: 'absolute', left: 0, bottom: 48, flexDirection: 'row', flexWrap: 'wrap', width: 220, padding: 5, gap: 2, borderRadius: 28, backgroundColor: colors.background.card, borderWidth: 1, borderColor: colors.border.default, boxShadow: '0px 4px 18px rgba(30, 16, 55, 0.12)' },
   pickerItem: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
 });

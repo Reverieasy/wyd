@@ -11,6 +11,7 @@ type Props = {
   label: string;
   onPress?: () => void;
   variant?: 'primary' | 'secondary';
+  emphasis?: 'solid' | 'gradient';
   disabled?: boolean;
   loading?: boolean;
   icon?: ReactNode;
@@ -21,6 +22,7 @@ export function ActionButton({
   label,
   onPress,
   variant = 'primary',
+  emphasis = 'solid',
   disabled = false,
   loading = false,
   icon,
@@ -43,7 +45,7 @@ export function ActionButton({
         style,
       ]}
     >
-      {primary ? <LinearGradient colors={gradients.action} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} /> : null}
+      {primary && emphasis === 'gradient' ? <LinearGradient colors={gradients.action} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} /> : null}
       {loading ? (
         <ActivityIndicator color={primary ? colors.text.onAccent : colors.text.primary} />
       ) : (
@@ -71,7 +73,7 @@ const makeStyles = ({ colors, gradients }: Theme) => StyleSheet.create({
     paddingVertical: spacing[12],
     alignSelf: 'stretch',
   },
-  primary: { backgroundColor: colors.background.accent },
+  primary: { backgroundColor: '#6C2CF5' },
   secondary: { backgroundColor: colors.background.card, borderWidth: 1, borderColor: colors.border.default },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.45 },

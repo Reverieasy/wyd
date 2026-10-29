@@ -19,6 +19,6 @@ export default function CreateCircleRoute() {
     <TextField accessibilityLabel="Circle name" placeholder="e.g. The weekend crew" value={name} onChangeText={setName} maxLength={40} editable={!busy} autoCapitalize="sentences" />
     <AppText variant="caption11" tone="secondary">{name.length}/40 characters</AppText>
     {error ? <AppText accessibilityRole="alert" style={{ color: '#DA645B' }}>{error}</AppText> : null}
-    <ActionButton label="Create circle" loading={busy} disabled={!name.trim()} onPress={() => void create()} />
+    <ActionButton emphasis="gradient" label="Create circle" loading={busy} disabled={!name.trim()} onPress={() => void create()} />
   </Screen>;
 }

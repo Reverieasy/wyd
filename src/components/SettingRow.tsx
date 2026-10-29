@@ -52,6 +52,6 @@ const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
   accent: { color: colors.background.accent },
   pressed: { opacity: 0.78 },
   profileRow: { borderWidth: 0, borderRadius: 16, minHeight: 56, paddingHorizontal: 14, paddingVertical: 8, shadowOpacity: 0, elevation: 0, boxShadow: '0px 5px 18px rgba(35, 18, 57, 0.045)' },
-  profileIcon: { width: 38, height: 38, borderRadius: 13, marginRight: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? colors.background.accentSoft : '#F5EFFF' },
+  profileIcon: { width: 38, height: 38, borderRadius: 13, marginRight: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.subtle },
   profileLabel: { fontFamily: 'PlusJakartaSans_500Medium', fontSize: 14, lineHeight: 21, color: isDark ? colors.text.primary : '#150B32' },
 });

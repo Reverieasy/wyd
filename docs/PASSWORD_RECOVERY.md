@@ -2,7 +2,7 @@
 
 ## Web and Android destinations
 
-Web reset requests now use the current browser origin followed by `/reset-password`. Android requests continue to use `watchudoin://reset-password`. Signup confirmation and resend requests follow the same platform-aware routing.
+Web reset requests use the current browser origin followed by `/reset-password`. Android requests continue to use `watchudoin://reset-password`. Android signup confirmation and resend requests now use a public HTTPS result page so they also work on computers; see [Email confirmation](EMAIL_CONFIRMATION.md).
 
 The app accepts web callbacks only from its current origin and the two known auth routes. It restores the session from Supabase's access/refresh token callback, enters password recovery, and removes credentials from browser history after handling the link. Expired or incomplete links show an actionable error. Password entry still requires an authenticated recovery session.
 
@@ -13,7 +13,7 @@ Request a fresh email after reloading the updated web app. Emails sent before th
 Verified October 27, 2026:
 
 - The existing email contains a Reset password link pointing to Supabase's HTTPS verification endpoint. Auth logs confirm recovery email delivery and verification.
-- The project currently has a localhost Site URL and an allowed `watchudoin://**` redirect.
+- At that check, the project had a localhost Site URL and a `watchudoin://**` redirect. On October 28 the user replaced these with the public confirmation Site URL and exact Android password-reset redirect(s). The standard `watchudoin://reset-password` destination was reverified with an invalid token.
 - Deliberately invalid-token checks redirected to the requested localhost ports 8081 and 3000 reset pages. An untrusted external host was rejected and fell back to the Site URL. No email was sent and no real reset token was consumed by these checks.
 - Add exact production web callback URLs when a public web domain is deployed.
 

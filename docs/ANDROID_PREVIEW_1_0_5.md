@@ -1,23 +1,30 @@
 # Android preview 1.0.5
 
-Package `com.watchudoin.app`, version code 6.
+Package `com.watchudoin.app`, version code 6. Built on October 27, 2026 after the user's request to resume APK builds.
 
-Source update only. The APK build was stopped at the user's request; do not restart it until explicitly requested. No completed 1.0.5 APK was produced.
+Artifact: `dist/wyd-1.0.5-preview.apk` (85,487,337 bytes).
 
-- Replaced the Expo grid splash asset with the existing purple W used by the app's BrandLogo.
-- Added a one-time 300 ms logo pop followed by a 160 ms fade when startup is ready. Reduce Motion skips the animation. The native splash remains until the branded React overlay has laid out; loading does not reveal an empty screen.
-- Replaced the old Expo chevron notification icon with a white, transparent W silhouette. The Android small icon is 96 × 96 and notification tint is the brand purple.
-- Redesigned foreground photo, reaction and comment popups with a W tile, sender avatar, event badge and explicit dismiss control. Notification preference and account guards remain in effect.
-- The notification permission prompt also uses the app logo.
-- Web password recovery now returns to the browser's reset page instead of the Android scheme. Android deep links remain supported. The branded recovery email HTML is prepared; live activation requires custom SMTP. See [Password recovery](PASSWORD_RECOVERY.md).
+SHA-256: `2CFBE9250CD9E24B092157CEEB1CE5E5BEEA4B8BE6F53E1F76D721312FBF7261`.
 
-`npm run assets:brand` regenerates native splash and notification assets from the established logo. Expo prebuild must run after regenerating native assets; an existing installed APK cannot acquire these resource changes through a JavaScript refresh.
+## Included changes
+
+- Personal QR cards with profile picture, name and username, a downloadable PNG, and a centered rounded watchudoin? wordmark. The QR card's W logo is removed. Camera and saved-image scans open a person preview before sending a connection request; signed-out links resume after login. Users share the downloaded image externally themselves.
+- Three logo-free Android widget styles: Wide, Portrait and Reactions. Emoji buttons react immediately; Send yours opens a fresh camera draft addressed to the widget's person. Widget fonts are bundled natively, authenticated photo thumbnails preserve their original aspect ratio, and appearance follows the app theme.
+- Outcome-based first-use guidance: find one person, send or receive a Moment, then place a widget. Progress persists per account on the installation.
+- Moments uses "Your last 30 days together." Deletion countdowns appear only in the final 48 hours. Eight optional statuses support tapping again to clear the selection.
+- Removed repeated idle Hold to nudge labels on Home. The hold gesture and sending feedback remain.
+- Simplified ordinary controls and cards, limited strong gradients to primary actions, and removed the decorative Profile background.
+- Branded startup and notification assets, a one-time logo pop with Reduce Motion support, and branded foreground notification popups.
+- Browser password recovery returns to the web reset screen; Android links remain supported. The redesigned recovery email is prepared, but activation still requires custom SMTP. See [Password recovery](PASSWORD_RECOVERY.md).
 
 ## Verification
 
-- TypeScript and all 140 tests passed. Coverage includes splash handoff timing, app readiness, Reduce Motion, animation cleanup, native icon format, web/native recovery redirects, callback trust and cleanup, and password-screen behavior.
-- Android prebuild regenerated the splash and notification resources successfully.
-- Dark fixture screenshots passed at 390 px; the notification layout also fits 320 px without horizontal overflow.
-- Android, iOS and web JavaScript exports passed after the recovery changes. These exports do not build an APK.
+- TypeScript and all 173 tests passed.
+- Android prebuild and push configuration checks passed.
+- Release compilation succeeded with arm64-v8a and x86_64 support (882 Gradle tasks, 8 minutes 14 seconds).
+- APK package/version and embedded Expo configuration passed inspection. No private environment, admin credential or keystore files were found in the APK archive.
+- APK signature verified with the same certificate as the previous preview: `fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`.
+- Installed over the previous preview in the isolated Android API 35 emulator without clearing app data. Version 1.0.5/code 6 was confirmed. Cold startup completed successfully, the dark welcome screen rendered correctly, and the app runtime log showed no startup errors.
+- Startup screenshot: `dist/design-review/android-1.0.5-start.png`.
 
-Release installation and actual background phone notification delivery remain pending. APK builds are held until the user requests one.
+Physical-device camera scanning, gallery permissions, launcher behavior and background phone notification delivery still need device checks. The emulator startup check does not verify authenticated flows or actual phone push delivery.

@@ -13,7 +13,7 @@ function copy(item: ActivityItem) {
   if (item.kind === 'moment') return 'posted a new moment';
   if (item.kind === 'nudge') return item.nudgeStatus === 'responded' ? 'answered a Nudge' : item.nudgeDirection === 'outgoing' ? 'got your Nudge' : 'nudged you';
   if (item.kind === 'reaction') return 'reacted to your moment';
-  if (item.kind === 'comment') return 'commented on your moment';
+  if (item.kind === 'comment') return item.commentReply ? 'replied in the comments' : 'commented on your moment';
   if (item.kind === 'connection_request') return 'sent you a request';
   return 'accepted your request';
 }

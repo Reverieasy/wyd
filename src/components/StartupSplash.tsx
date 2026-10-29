@@ -42,20 +42,25 @@ export function StartupSplash({ ready, onFinish }: { ready: boolean; onFinish: (
     return () => { active = false; animation.stop(); };
   }, [ready, laidOut, introDone, reducedMotion, opacity]);
 
-  return <Animated.View accessibilityLabel="Opening watchudoin?" accessibilityViewIsModal style={[StyleSheet.absoluteFill, styles.screen, { opacity }]} onLayout={() => {
+  return <Animated.View accessibilityLabel="Opening watchudoin?" accessibilityViewIsModal style={[StyleSheet.absoluteFill, styles.screen, { opacity, paddingTop: insets.top, paddingBottom: insets.bottom }]} onLayout={() => {
     setLaidOut(true);
     if (!nativeHidden.current) { nativeHidden.current = true; void hideAsync().catch(() => undefined); }
   }}>
-    <Animated.View style={{ transform: [{ scale }] }}><BrandLogo size={220} /></Animated.View>
-    <View style={styles.wordmark}><BrandWordmark size={29} appearance="dark" /><Text style={styles.tagline}>Little moments. Your people.</Text></View>
-    {!ready ? <View accessibilityLiveRegion="polite" style={[styles.progress, { bottom: Math.max(insets.bottom, 20) + 20 }]}><ActivityIndicator color="#B394FF" size="small" /><Text style={styles.loading}>Getting your circle ready…</Text></View> : null}
+    <View style={styles.content}>
+      <Animated.View style={{ transform: [{ scale }] }}><BrandLogo size={220} /></Animated.View>
+      <View style={styles.wordmark}><BrandWordmark size={29} appearance="dark" /><Text style={styles.tagline}>Little moments. Your people.</Text></View>
+      <View accessibilityLiveRegion="polite" style={styles.progress}>
+        {!ready ? <><ActivityIndicator color="#B394FF" size="small" /><Text style={styles.loading}>Getting your circle ready…</Text></> : null}
+      </View>
+    </View>
   </Animated.View>;
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#141119', zIndex: 2000 },
-  wordmark: { position: 'absolute', top: '50%', marginTop: 92, alignItems: 'center', gap: 8 },
-  tagline: { color: '#B5A9C0', fontFamily: 'PlusJakartaSans_400Regular', fontSize: 13, lineHeight: 21 },
-  progress: { position: 'absolute', alignItems: 'center', gap: 10 },
-  loading: { color: '#B5A9C0', fontFamily: 'PlusJakartaSans_400Regular', fontSize: 12, lineHeight: 18 },
+  content: { width: '100%', maxWidth: 360, paddingHorizontal: 24, alignItems: 'center', gap: 20 },
+  wordmark: { alignItems: 'center', gap: 8 },
+  tagline: { color: '#B5A9C0', fontFamily: 'PlusJakartaSans_400Regular', fontSize: 13, lineHeight: 21, textAlign: 'center' },
+  progress: { minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loading: { color: '#B5A9C0', fontFamily: 'PlusJakartaSans_400Regular', fontSize: 12, lineHeight: 18, textAlign: 'center' },
 });

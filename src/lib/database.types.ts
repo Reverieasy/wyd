@@ -58,7 +58,7 @@ type ReactionRow = {
   id: string;
   update_id: string;
   user_id: string;
-  reaction: 'heart' | 'teary' | 'laugh' | 'fire' | 'eyes';
+  reaction: 'heart' | 'teary' | 'laugh' | 'fire' | 'eyes' | 'hug' | 'sparkles';
   created_at: string;
 };
 
@@ -254,7 +254,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       delete_own_moment: { Args: { p_update_id: string }; Returns: boolean };
-      list_comment_notifications: { Args: { p_before_created_at?: string; p_limit?: number }; Returns: { id: string; update_id: string; user_id: string; created_at: string; display_name: string; username: string; avatar_path: string | null }[] };
+      list_comment_notifications: { Args: { p_before_created_at?: string; p_limit?: number }; Returns: { id: string; update_id: string; user_id: string; created_at: string; display_name: string; username: string; avatar_path: string | null; is_reply: boolean }[] };
       list_moment_comments: { Args: { p_update_id: string; p_before_created_at?: string; p_before_id?: string; p_limit?: number }; Returns: MomentCommentWithAuthor[] };
       add_moment_comment: { Args: { p_update_id: string; p_body: string; p_id: string }; Returns: string };
       delete_moment_comment: { Args: { p_update_id: string; p_id: string }; Returns: boolean };

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { defaultWidgetSettings, type WidgetSettings, type WidgetSnapshot } from './widgetModel';
+import { defaultWidgetSettings, parseWidgetDesign, type WidgetSettings, type WidgetSnapshot } from './widgetModel';
 
-const PHOTO_KEY = 'wyd.widget.photo.v1';
+const PHOTO_KEY = 'wyd.widget.photo.v2';
 const settingsKey = (userId: string) => `wyd.widget.settings.v1:${userId}`;
 export const widgetStorage = {
   async getSettings(userId: string): Promise<WidgetSettings> {
@@ -9,7 +9,7 @@ export const widgetStorage = {
       const raw = await AsyncStorage.getItem(settingsKey(userId));
       if (!raw) return { ...defaultWidgetSettings };
       const value = JSON.parse(raw);
-      return { enabled: value.enabled === true, personId: typeof value.personId === 'string' ? value.personId : null };
+      return { enabled: value.enabled === true, personId: typeof value.personId === 'string' ? value.personId : null, design: parseWidgetDesign(value.design) };
     } catch { return { ...defaultWidgetSettings }; }
   },
   async saveSettings(userId: string, settings: WidgetSettings) {
@@ -18,6 +18,7 @@ export const widgetStorage = {
   },
   async getPhoto(userId: string): Promise<WidgetSnapshot | null> {
     try {
+      await AsyncStorage.removeItem('wyd.widget.photo.v1');
       const raw = await AsyncStorage.getItem(PHOTO_KEY);
       if (!raw) return null;
       const value = JSON.parse(raw) as WidgetSnapshot;
@@ -25,5 +26,5 @@ export const widgetStorage = {
     } catch { return null; }
   },
   async savePhoto(snapshot: WidgetSnapshot) { await AsyncStorage.setItem(PHOTO_KEY, JSON.stringify(snapshot)); },
-  async clearPhoto() { await AsyncStorage.removeItem(PHOTO_KEY); },
+  async clearPhoto() { await Promise.all([AsyncStorage.removeItem(PHOTO_KEY), AsyncStorage.removeItem('wyd.widget.photo.v1')]); },
 };

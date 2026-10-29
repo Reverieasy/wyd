@@ -54,3 +54,6 @@ supabase/.temp/
 google-services.json
 credentials.json
 *-firebase-adminsdk-*.json
+
+# Generated public auth-site configuration
+/auth-site/config.js

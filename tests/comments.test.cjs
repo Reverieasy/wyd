@@ -49,7 +49,7 @@ test('comment permission errors give a useful message without an unexpected serv
 
 function ui(t, overrides = {}, props = {}) {
   const hooks = [];
-  let cursor = 0, effects = [], uuid = 0, showKeyboard = () => {};
+  let cursor = 0, effects = [], uuid = 0;
   const react = {
     useRef(initial) { const i = cursor++; return hooks[i] ??= { current: initial }; },
     useState(initial) { const i = cursor++; if (!(i in hooks)) hooks[i] = initial; return [hooks[i], next => { hooks[i] = typeof next === 'function' ? next(hooks[i]) : next; }]; },
@@ -65,7 +65,7 @@ function ui(t, overrides = {}, props = {}) {
     react,
     'expo-router': { useFocusEffect: fn => react.useEffect(fn, [fn]) },
     'expo-crypto': { randomUUID: () => 'request-' + ++uuid },
-    'react-native': { View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator', Keyboard: { addListener: (_event, callback) => { showKeyboard = callback; return { remove() {} }; } }, StyleSheet: { create: value => value } },
+    'react-native': { View: 'View', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator', StyleSheet: { create: value => value } },
     '@expo/vector-icons/Feather': { __esModule: true, default: 'Feather' },
     'expo-linear-gradient': { LinearGradient: 'LinearGradient' },
     '@/src/features/comments/commentService': { commentService: api, COMMENT_MAX_LENGTH: 500 },
@@ -78,16 +78,58 @@ function ui(t, overrides = {}, props = {}) {
   const render = () => { cursor = 0; effects = []; const tree = MomentComments({ updateId: 'moment', userId: 'me', ...props }); effects.forEach(fn => fn()); return tree; };
   const nodes = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(nodes) : [node, ...nodes(node.props?.children)];
   t.after(() => hooks.forEach(hook => hook?.cleanup?.()));
-  return { render, nodes, showKeyboard: () => showKeyboard(), flush: () => new Promise(resolve => setImmediate(resolve)) };
+  return { render, nodes, flush: () => new Promise(resolve => setImmediate(resolve)) };
 }
-test('the focused comment composer is revealed again after the phone keyboard opens', async t => {
+test('the composer stays outside the scrolling photo and thread, including after keyboard resize', async t => {
+  const header = { type: 'MomentPhoto', props: {} };
+  const app = ui(t, {}, { children: header }); app.render(); await app.flush();
   let revealed = 0;
-  const app = ui(t, {}, { onComposerFocus: () => revealed++ }); app.render(); await app.flush();
-  const input = app.nodes(app.render()).find(node => node.type === 'TextField');
+  const nodes = app.nodes(app.render());
+  const scroll = nodes.find(node => node.type === 'ScrollView');
+  scroll.props.ref.current = { scrollToEnd: () => revealed++ };
+  assert.equal(nodes.filter(node => node.type === 'ScrollView').length, 1);
+  assert.equal(app.nodes(scroll).includes(header), true);
+  assert.equal(app.nodes(scroll).some(node => node.type === 'TextField'), false);
+  assert.equal(app.nodes(scroll).some(node => node.props?.accessibilityLabel === 'Send comment'), false);
+  // Opening a moment must still start at the photo, not jump to the last reply.
+  scroll.props.onContentSizeChange(); assert.equal(revealed, 0);
+  const input = nodes.find(node => node.type === 'TextField');
+  input.props.onChangeText('Draft kept while the keyboard opens');
   input.props.onFocus(); assert.equal(revealed, 1);
-  app.showKeyboard(); assert.equal(revealed, 2);
-  input.props.onBlur(); app.showKeyboard(); assert.equal(revealed, 2);
+  scroll.props.onLayout({ nativeEvent: { layout: { height: 240 } } }); assert.equal(revealed, 2);
+  assert.equal(app.nodes(app.render()).find(node => node.type === 'TextField').props.value, 'Draft kept while the keyboard opens');
+  input.props.onBlur(); scroll.props.onLayout(); assert.equal(revealed, 2);
 });
+test('the comment field grows for multiple lines and caps its height for long drafts', async t => {
+  const app = ui(t); app.render(); await app.flush();
+  const input = () => app.nodes(app.render()).find(node => node.type === 'TextField');
+  input().props.onContentSizeChange({ nativeEvent: { contentSize: { height: 78 } } });
+  assert.equal(Object.assign({}, ...input().props.style).height, 78);
+  input().props.onContentSizeChange({ nativeEvent: { contentSize: { height: 400 } } });
+  assert.equal(Object.assign({}, ...input().props.style).height, 120);
+  input().props.onContentSizeChange({ nativeEvent: { contentSize: { height: 20 } } });
+  assert.equal(Object.assign({}, ...input().props.style).height, 46);
+});
+
+for (const [os, behavior] of [['android', 'height'], ['ios', 'padding']]) {
+  test(`the moment screen has active ${os} keyboard avoidance with the safe-area offset`, () => {
+    const mocks = {
+      '@/src/theme/ThemeProvider': { useThemeStyles: factory => ({ colors: { background: {} }, styles: factory({}) }) },
+      'react-native': { KeyboardAvoidingView: 'KeyboardAvoidingView', ScrollView: 'ScrollView', Platform: { OS: os }, StyleSheet: { create: value => value } },
+      'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 30, bottom: 24 }) },
+      '@/src/theme': { layout: { screenPadding: 16 }, spacing: { 20: 20, 24: 24 } },
+      './ScreenTransition': { ScreenTransition: 'ScreenTransition' },
+    };
+    const { Screen } = load('src/components/Screen.tsx', mocks);
+    const tree = Screen({ keyboardAvoiding: true, children: 'composer', contentStyle: { flex: 1 } });
+    const avoider = tree.props.children;
+    assert.equal(avoider.type, 'KeyboardAvoidingView');
+    assert.equal(avoider.props.enabled, true);
+    assert.equal(avoider.props.behavior, behavior);
+    assert.equal(avoider.props.keyboardVerticalOffset, 30);
+    assert.equal(avoider.props.children.props.children, 'composer');
+  });
+}
 test('Messenger comments show profiles, oldest-first bubbles, and an icon-only send control', async t => {
   const app = ui(t); app.render(); await app.flush();
   const nodes = app.nodes(app.render());

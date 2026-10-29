@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 export type AuthCallbackRoute = 'email-confirmed' | 'reset-password';
+export const EMAIL_CONFIRMATION_WEB_URL = 'https://watchudoin-auth.vercel.app/email-confirmed';
 
 function webOrigin() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
@@ -12,7 +13,10 @@ function webOrigin() {
 
 export function authRedirectUrl(route: AuthCallbackRoute) {
   const origin = webOrigin();
-  return origin ? `${origin}/${route}` : `watchudoin://${route}`;
+  if (origin) return `${origin}/${route}`;
+  // HTTPS also works when an Android signup email is opened on a computer.
+  // The confirmation page offers an explicit app handoff on Android.
+  return route === 'email-confirmed' ? EMAIL_CONFIRMATION_WEB_URL : `watchudoin://${route}`;
 }
 
 export function authCallbackRoute(value: string): AuthCallbackRoute | null {

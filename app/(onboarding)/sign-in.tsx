@@ -27,7 +27,7 @@ export default function SignInRoute() {
     <View style={styles.form}><AppText style={styles.label}>EMAIL</AppText><TextField accessibilityLabel="Email address" autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@example.com" value={email} onChangeText={setEmail} /><AppText style={[styles.label, { marginTop: 6 }]}>PASSWORD</AppText><PasswordField accessibilityLabel="Password" autoCapitalize="none" autoComplete="current-password" placeholder="Password" value={password} onChangeText={setPassword} onSubmitEditing={() => void submit()} /></View>
     <Pressable accessibilityRole="button" style={styles.forgot} onPress={() => router.push('/(onboarding)/forgot-password')}><AppText style={styles.linkText}>Forgot password?</AppText></Pressable>
     {state.server.error ? <AppText style={styles.error}>{state.server.error}</AppText> : null}
-    <ActionButton label="Log in" loading={state.server.busy} disabled={!state.server.configured || !email.trim() || !password} onPress={() => void submit()} />
+    <ActionButton emphasis="gradient" label="Log in" loading={state.server.busy} disabled={!state.server.configured || !email.trim() || !password} onPress={() => void submit()} />
     <Pressable accessibilityRole="button" style={styles.link} onPress={() => router.push('/(onboarding)/create-account')}><AppText style={styles.linkText}>New here? Create an account</AppText></Pressable>
     <View style={styles.privacy}><AppText variant="label12">Private by default.</AppText><AppText style={styles.privacyCopy}>Only people you connect with can see your moments.</AppText></View>
   </Screen>;

@@ -1,7 +1,6 @@
 import { useThemeStyles, type Theme } from '@/src/theme/ThemeProvider';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Feather from '@expo/vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -38,9 +37,8 @@ export default function YouRoute() {
     }
   };
   return <Screen scroll backgroundColor={isDark ? colors.background.app : '#FEFDFC'} contentStyle={styles.content}>
-    <View pointerEvents="none" style={styles.heroBackdrop}><LinearGradient colors={isDark ? ['#332347', '#21182E', '#141119'] : ['#EEE4FF', '#F9F5FF', '#FEFDFC']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} /><View style={styles.wave} /></View>
     <View style={styles.profile}><View style={styles.avatarRing}><Avatar name={user.displayName} uri={user.avatarUrl ?? undefined} size={86} /><View accessible={false} style={styles.avatarDot} /></View><View style={styles.copy}><AppText numberOfLines={2} style={styles.heading}>{user.displayName}</AppText><AppText style={styles.handle}>@{user.handle}</AppText>{user.bio ? <AppText style={styles.bio}>{user.bio}</AppText> : null}</View><Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push('/(flows)/settings')} style={styles.settings}><MaterialIcons name="settings" size={26} color={isDark ? colors.background.accent : '#2E0969'} /></Pressable></View>
-    <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push('/(flows)/edit-profile')} style={styles.editButton}><LinearGradient colors={['#8C46FF', '#CF91F5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.editFill}><Feather name="edit-2" color="white" size={19} /><AppText style={styles.editText}>Edit profile</AppText></LinearGradient></Pressable>
+    <ActionButton label="Edit profile" variant="secondary" icon={<Feather name="edit-2" color={colors.text.primary} size={19} />} onPress={() => router.push('/(flows)/edit-profile')} />
     <View style={styles.stats}>{[{ label: 'Moments', value: stats?.moments, path: '/(tabs)/moments' as const }, { label: 'Close People', value: accepted.length, path: '/(flows)/close-people' as const }, { label: 'Circles', value: circlesLoading && !circles.length ? undefined : circlesError ? undefined : circles.filter(circle => circle.status === 'member').length, path: '/(flows)/circles' as const }].map((item, index) => <Pressable key={item.label} accessibilityRole="button" onPress={() => router.push(item.path)} style={styles.stat}>{index > 0 ? <View style={styles.statDivider} /> : null}<AppText style={styles.statValue}>{item.value ?? '—'}</AppText><AppText style={styles.statLabel}>{item.label}</AppText></Pressable>)}</View>
     {error ? <AppText style={styles.handle}>{error}</AppText> : null}
     {circlesError ? <AppText style={styles.handle}>{circlesError}</AppText> : null}
@@ -52,10 +50,8 @@ export default function YouRoute() {
 }
 const makeStyles = ({ colors, isDark }: Theme) => StyleSheet.create({
   content: { gap: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 28, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, height: 220, overflow: 'hidden' }, wave: { position: 'absolute', top: -155, left: 130, width: 480, height: 230, borderRadius: 240, backgroundColor: isDark ? colors.background.app : '#FEFDFC', transform: [{ rotate: '16deg' }] },
-  settings: { height: 44, width: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? colors.background.accentSoft : '#F1EAFE', boxShadow: '0px 4px 12px rgba(45, 12, 91, 0.07)' },
+  settings: { height: 44, width: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background.card, borderWidth: 1, borderColor: colors.border.default },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 12 }, avatarRing: { width: 94, height: 94, borderRadius: 47, backgroundColor: colors.background.card, alignItems: 'center', justifyContent: 'center' }, avatarDot: { position: 'absolute', bottom: 8, right: 3, width: 17, height: 17, borderRadius: 9, backgroundColor: '#792BFF', borderWidth: 3, borderColor: colors.background.card },
   copy: { flex: 1, gap: 4 }, heading: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 25, lineHeight: 33, color: isDark ? colors.text.primary : '#150B32' }, handle: { fontSize: 13, lineHeight: 20, color: colors.text.secondary }, bio: { fontSize: 11, lineHeight: 17, color: colors.text.secondary },
-  editButton: { borderRadius: 24, overflow: 'hidden', boxShadow: '0px 6px 18px rgba(139, 68, 245, 0.12)' }, editFill: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }, editText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 15, color: 'white' },
   stats: { flexDirection: 'row', minHeight: 78, paddingVertical: 12, backgroundColor: colors.background.card, borderRadius: 17, boxShadow: '0px 5px 18px rgba(35, 18, 57, 0.045)' }, stat: { alignItems: 'center', justifyContent: 'center', minHeight: 54, gap: 3, flex: 1 }, statDivider: { position: 'absolute', left: 0, height: 34, width: 1, backgroundColor: colors.border.default }, statValue: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 22, lineHeight: 30, color: isDark ? colors.background.accent : '#2F086A' }, statLabel: { fontSize: 10, lineHeight: 16, color: colors.text.secondary }, rows: { gap: 1 },
 });

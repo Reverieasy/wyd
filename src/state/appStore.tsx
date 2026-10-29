@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Crypto from 'expo-crypto';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import { statusDetails } from '@/src/features/updates/momentStatuses';
 import { AppState as NativeAppState } from 'react-native';
 
 import { authService, type SignUpInput } from '@/src/features/auth/authService';
@@ -144,6 +145,7 @@ type Action =
   | { type: 'SET_DRAFT_CIRCLES'; circleIds: string[] }
   | { type: 'SET_DRAFT_CAPTION'; caption: string }
   | { type: 'PREPARE_NUDGE_RESPONSE'; nudgeId: string; senderId: UserId }
+  | { type: 'PREPARE_WIDGET_REPLY'; userId: UserId; personId: UserId }
   | { type: 'DRAFT_SENDING'; sending: boolean }
   | { type: 'DRAFT_STAGE'; stage: UpdateDraft['sendStage'] }
   | { type: 'DRAFT_REQUEST_ID'; id: string }
@@ -423,6 +425,10 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case 'SET_DRAFT_CAPTION': return { ...state, local: { ...state.local, draft: { ...state.local.draft, caption: action.caption, error: null } } };
     case 'PREPARE_NUDGE_RESPONSE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, recipientIds: [action.senderId], circleIds: [], respondingToNudgeId: action.nudgeId, error: null } } };
+    case 'PREPARE_WIDGET_REPLY': {
+      if (state.server.session?.user.id !== action.userId || state.server.profile?.id !== action.userId || state.local.draft.sending || !state.server.connections.some(entry => entry.connection.status === 'accepted' && entry.person.id === action.personId && entry.person.id !== action.userId)) return state;
+      return { ...state, local: { ...state.local, draft: { photo: null, status: null, recipientIds: [action.personId], circleIds: [], caption: '', sending: false, sendStage: 'idle', clientRequestId: null, error: null, respondingToNudgeId: null } } };
+    }
     case 'DRAFT_SENDING': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sending: action.sending, sendStage: action.sending ? state.local.draft.sendStage : 'idle', error: null } } };
     case 'DRAFT_STAGE': return { ...state, local: { ...state.local, draft: { ...state.local.draft, sendStage: action.stage } } };
     case 'DRAFT_REQUEST_ID': return { ...state, local: { ...state.local, draft: { ...state.local.draft, clientRequestId: action.id } } };
@@ -489,6 +495,7 @@ type AppActions = {
   markActivityRead: () => Promise<void>;
   sendNudge: (personId: UserId) => Promise<boolean>;
   prepareNudgeResponse: (nudgeId: string, senderId: UserId) => void;
+  prepareWidgetReply: (ownerId: UserId, personId: UserId) => boolean;
   markNudgeSeen: (nudgeId: string) => Promise<void>;
   reactToUpdate: (updateId: string, reaction: ReactionType) => Promise<boolean>;
   deleteMoment: (updateId: string) => Promise<void>;
@@ -1181,6 +1188,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     },
     prepareNudgeResponse: (nudgeId, senderId) => dispatch({ type: 'PREPARE_NUDGE_RESPONSE', nudgeId, senderId }),
+    prepareWidgetReply: (ownerId, personId) => {
+      const current = stateRef.current;
+      if (sendingRef.current || current.local.draft.sending || current.server.session?.user.id !== ownerId || current.server.profile?.id !== ownerId || !current.server.connections.some(entry => entry.connection.status === 'accepted' && entry.person.id === personId && personId !== ownerId)) return false;
+      dispatch({ type: 'PREPARE_WIDGET_REPLY', userId: ownerId, personId });
+      return true;
+    },
     markNudgeSeen: async (nudgeId) => {
       const profileId = state.server.profile?.id;
       if (!profileId) return;
@@ -1328,15 +1341,7 @@ export function useAppStore() {
   return value;
 }
 
-export const statusDetails: Record<UpdateStatus, { label: string; symbol: string }> = {
-  studying: { label: 'Studying', symbol: '\u{1F4DA}' },
-  chilling: { label: 'Chilling', symbol: '\u2615' },
-  working: { label: 'Working', symbol: '\u{1F4BB}' },
-  home: { label: 'Home', symbol: '\u{1F3E0}' },
-  eating: { label: 'Eating', symbol: '\u{1F35C}' },
-  school: { label: 'School', symbol: '\u{1F393}' },
-  morning: { label: 'Good morning', symbol: '\u2600\uFE0F' },
-};
+export { statusDetails };
 
 export function relativeTime(isoDate: string) {
   const minutes = Math.max(1, Math.round((Date.now() - new Date(isoDate).getTime()) / 60_000));

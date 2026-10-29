@@ -98,6 +98,7 @@ export function NudgeAvatar({ name, uri, size = 48, palette, selected, disabled 
   };
 
   const ringSize = size + 10;
+  const hint = sending || busy ? 'Sending…' : sent ? 'Nudged!' : holding ? 'Keep holding' : failed ? 'Try again' : variant === 'home' ? null : 'Hold to nudge';
   return <Pressable accessibilityRole="button" accessibilityLabel={name} accessibilityHint="Tap to view. Hold for 3 seconds to send a nudge; release early to cancel."
     accessibilityState={{ selected: Boolean(selected), disabled: disabled || busy || sending, busy: busy || sending }}
     disabled={disabled || busy || sending} onPressIn={start} onPressOut={cancel} onBlur={cancel}
@@ -116,7 +117,7 @@ export function NudgeAvatar({ name, uri, size = 48, palette, selected, disabled 
       </Animated.View>
     </View>
     {variant !== 'compact' ? <><AppText numberOfLines={1} style={[styles.name, variant === 'home' && styles.homeName]}>{name}</AppText>
-    <AppText accessibilityLiveRegion="polite" style={[styles.hint, variant === 'home' && styles.homeHint]}>{sending || busy ? 'Sending…' : sent ? 'Nudged!' : holding ? 'Keep holding' : failed ? 'Try again' : 'Hold to nudge'}</AppText></> : null}
+    {hint ? <AppText accessibilityLiveRegion="polite" style={[styles.hint, variant === 'home' && styles.homeHint]}>{hint}</AppText> : null}</> : null}
   </Pressable>;
 }
 

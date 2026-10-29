@@ -44,6 +44,12 @@ test('web signup and resend callbacks also use the browser origin', async () => 
   assert.equal(h.requests[1].options.emailRedirectTo, 'http://localhost:8081/email-confirmed');
 });
 
+test('Android signup and resend emails use the public HTTPS page so they also open on a computer', async () => {
+  const h = harness('android'); await h.service.signUp({ email: 'me@example.com', password: 'password', username: 'me' }); await h.service.resendSignupConfirmation('me@example.com');
+  assert.equal(h.requests[0].options.emailRedirectTo, 'https://watchudoin-auth.vercel.app/email-confirmed');
+  assert.equal(h.requests[1].options.emailRedirectTo, 'https://watchudoin-auth.vercel.app/email-confirmed');
+});
+
 test('web password callbacks create the recovery session and remove credentials from history', async () => {
   const url = 'http://localhost:8081/reset-password#access_token=access&refresh_token=refresh&type=recovery';
   const h = harness('web', url), result = await h.links.handle(url);
